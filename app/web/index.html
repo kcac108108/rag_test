@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Text-to-SQL (RAG)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --text:#e5e7eb;
+      --muted:#a3a3a3;
+      --line:rgba(255,255,255,.10);
+      --accent:#7c3aed;
+      --accent2:#22c55e;
+      --danger:#ef4444;
+      --warn:#f59e0b;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: radial-gradient(1200px 700px at 10% 0%, rgba(124,58,237,.35), transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.20), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    .wrap{ max-width: 980px; margin: 28px auto; padding: 0 16px 60px; }
+    .header{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
+    .title h1{ margin:0; font-size:22px; letter-spacing:-0.2px; }
+    .title p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+    .badge{
+      padding: 6px 10px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      font-size:12px;
+      color:#d1d5db;
+      white-space:nowrap;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.04);
+      color:#e5e7eb;
+    }
+    .grid{ display:grid; grid-template-columns: 1.15fr .85fr; gap:14px; margin-top: 14px; }
+    @media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .card-hd{
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background: rgba(0,0,0,.15);
+    }
+    .card .card-hd h2{ margin:0; font-size:14px; letter-spacing:.2px; color:#f3f4f6; }
+    .card .card-bd{ padding: 14px 16px 16px; }
+
+    label{ display:block; font-size:12px; color:#cbd5e1; margin-bottom:6px; }
+    textarea, input[type="number"], select{
+      width:100%;
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline:none;
+      transition: .15s ease;
+    }
+    textarea{ min-height: 120px; resize: vertical; }
+    textarea:focus, input:focus, select:focus{
+      border-color: rgba(124,58,237,.65);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+    }
+
+    .row{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-top: 12px; }
+    .row .col{ flex: 1 1 160px; min-width: 160px; }
+    .row .col.small{ flex: 0 0 140px; min-width: 140px; }
+
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    button{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: .15s ease;
+      font-weight:600;
+      letter-spacing:.2px;
+    }
+    button:hover{ transform: translateY(-1px); background: rgba(255,255,255,.09); }
+    button:active{ transform: translateY(0); }
+    button.primary{
+      border-color: rgba(124,58,237,.55);
+      background: linear-gradient(180deg, rgba(124,58,237,.55), rgba(124,58,237,.28));
+    }
+    button.primary:hover{ filter: brightness(1.05); }
+    button[disabled]{ opacity:.55; cursor:not-allowed; transform:none !important; }
+
+    .opts{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      padding: 10px 12px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius: 12px;
+      background: rgba(255,255,255,.03);
+      margin-top: 12px;
+    }
+    .opt{ display:flex; gap:8px; align-items:center; color:#d1d5db; font-size:12px; }
+    .opt input{ transform: translateY(1px); }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      background: rgba(255,255,255,.05);
+      color:#e5e7eb;
+      white-space:nowrap;
+    }
+    .dot{ width:8px;height:8px;border-radius:999px;background:#94a3b8; box-shadow: 0 0 0 4px rgba(148,163,184,.12); }
+    .pill.running .dot{ background: var(--warn); box-shadow: 0 0 0 4px rgba(245,158,11,.15); }
+    .pill.done .dot{ background: var(--accent2); box-shadow: 0 0 0 4px rgba(34,197,94,.14); }
+    .pill.error .dot{ background: var(--danger); box-shadow: 0 0 0 4px rgba(239,68,68,.16); }
+
+    .summarybar{
+      margin-top:12px;
+      padding: 12px 12px;
+      border: 1px solid rgba(124,58,237,.35);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(124,58,237,.20), rgba(255,255,255,.03));
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+    .summarybar strong{ color:#f3f4f6; font-weight:800; letter-spacing:.2px; }
+    .summarybar .mini{ color:#d1d5db; font-size:13px; }
+    .summarybar b{ font-weight:800; }
+
+    .section-title{
+      font-size: 13px;
+      color:#cbd5e1;
+      margin: 0 0 8px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .section-title .hint{ color:var(--muted); font-size:12px; }
+
+    pre{
+      margin:0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(0,0,0,.25);
+      padding: 12px;
+      overflow:auto;
+      white-space: pre-wrap;
+    }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      overflow:hidden;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.20);
+    }
+    th, td{
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid rgba(255,255,255,.06);
+      text-align:left;
+      font-size: 13px;
+      color:#e5e7eb;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background: rgba(255,255,255,.06);
+      font-size:12px;
+      color:#f3f4f6;
+    }
+    tr:hover td{ background: rgba(255,255,255,.03); }
+    td:last-child, th:last-child{ border-right:none; }
+    tr:last-child td{ border-bottom:none; }
+
+    details{
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      padding: 10px 12px;
+    }
+    details > summary{ cursor:pointer; color:#e5e7eb; font-weight:700; }
+    details ul{ margin: 10px 0 0 18px; color:#d1d5db; }
+    details li{ margin: 8px 0; }
+    details pre{ margin-top: 8px; }
+    .footer-note{ margin-top: 14px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">
+        <h1>Text-to-SQL (RAG)</h1>
+        <p>질문을 입력하면 RAG 컨텍스트를 바탕으로 SQL을 생성하고(옵션) DB 실행 결과까지 표시합니다.</p>
+      </div>
+      <div class="badge">Backend: <span class="kbd">/api/v1/sql/query</span></div>
+    </div>
+
+    <div class="grid">
+      <!-- Left: Input -->
+      <div class="card">
+        <div class="card-hd">
+          <h2>입력</h2>
+          <span class="pill" id="statusPill"><span class="dot"></span><span id="status">idle</span></span>
+        </div>
+        <div class="card-bd">
+          <label>질문</label>
+          <textarea id="question" placeholder="예: 2024년 국가별 수출입 합계 Top 1 국가를 보여줘"></textarea>
+
+          <div class="row">
+            <div class="col small">
+              <label>top_k</label>
+              <input id="top_k" type="number" value="5" min="1" max="20"/>
+            </div>
+
+            <div class="col small">
+              <label>row_limit</label>
+              <input id="row_limit" type="number" value="200" min="1" max="10000"/>
+            </div>
+
+            <div class="col small">
+              <label>dialect</label>
+              <select id="dialect">
+                <option value="oracle" selected>oracle</option>
+                <option value="postgres">postgres</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="opts">
+            <div class="opt">
+              <input id="include_sources" type="checkbox" />
+              <label for="include_sources">sources 포함(토큰↑)</label>
+            </div>
+            <div class="opt">
+              <input id="show_source_text" type="checkbox" />
+              <label for="show_source_text">sources 원문 보기</label>
+            </div>
+            <div class="opt">
+              <!-- ✅ 초기 OFF -->
+              <input id="include_total" type="checkbox" />
+              <label for="include_total">총 건수(total_rows) 계산</label>
+            </div>
+          </div>
+
+          <div class="btns">
+            <button class="primary" id="btn">SQL 생성 + 실행</button>
+            <button class="primary" id="copy" disabled>SQL 복사</button>
+          </div>
+
+          <div class="footer-note">
+            * include_total은 기본 OFF입니다. 실행 결과가 row_limit로 “잘린 경우”에만 자동 ON 됩니다.
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Summary -->
+      <div class="card">
+        <div class="card-hd">
+          <h2>요약</h2>
+          <div class="badge">토큰 절약: 기본은 sources 숨김</div>
+        </div>
+        <div class="card-bd">
+          <div id="summaryBar" class="summarybar" style="display:none;">
+            <div class="mini" id="summaryText"></div>
+          </div>
+          <div class="muted" id="summaryEmpty" style="font-size:13px;">
+            아직 실행 결과가 없습니다. 질문을 입력하고 <b>SQL 생성 + 실행</b>을 눌러보세요.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-hd">
+        <h2>출력</h2>
+        <div class="badge">SQL + Result</div>
+      </div>
+      <div class="card-bd">
+        <div class="section-title">
+          <span>생성된 SQL</span>
+          <span class="hint">SQL 복사 버튼으로 복사 가능</span>
+        </div>
+        <pre id="outSql">(여기에 SQL이 표시됩니다)</pre>
+
+        <div style="height:14px;"></div>
+
+        <div class="section-title">
+          <span>실행 결과</span>
+          <span class="hint">표는 최대 row_limit까지 표시</span>
+        </div>
+        <div id="outResult" class="muted">(여기에 결과가 표시됩니다)</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const outSql = document.getElementById("outSql");
+    const outResult = document.getElementById("outResult");
+    const btn = document.getElementById("btn");
+    const copyBtn = document.getElementById("copy");
+
+    const statusText = document.getElementById("status");
+    const statusPill = document.getElementById("statusPill");
+
+    const summaryBar = document.getElementById("summaryBar");
+    const summaryText = document.getElementById("summaryText");
+    const summaryEmpty = document.getElementById("summaryEmpty");
+
+    const includeSourcesEl = document.getElementById("include_sources");
+    const showSourceTextEl = document.getElementById("show_source_text");
+    const includeTotalEl = document.getElementById("include_total");
+
+    let lastSql = "";
+
+    function setStatus(state) {
+      statusText.textContent = state;
+      statusPill.classList.remove("running","done","error");
+      if (state === "running") statusPill.classList.add("running");
+      if (state === "done") statusPill.classList.add("done");
+      if (state === "error") statusPill.classList.add("error");
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function showSummary(line) {
+      if (!line) {
+        summaryBar.style.display = "none";
+        summaryText.textContent = "";
+        summaryEmpty.style.display = "block";
+        return;
+      }
+      summaryEmpty.style.display = "none";
+      summaryBar.style.display = "flex";
+      summaryText.innerHTML = line;
+    }
+
+    function buildSummaryLine(data, rowsLen, rowLimit) {
+      const parts = [];
+      if (data.summary) parts.push(`<strong>요약</strong>: ${escapeHtml(data.summary)}`);
+
+      const total = (data.total_rows === null || data.total_rows === undefined) ? null : Number(data.total_rows);
+      const isLimited = !!data.is_limited;
+
+      if (total !== null && !Number.isNaN(total)) {
+        if (isLimited || (rowsLen >= rowLimit && total > rowsLen)) {
+          parts.push(`총 <b>${total.toLocaleString()}</b>건 중 <b>${rowsLen.toLocaleString()}</b>건 표시`);
+        } else {
+          parts.push(`총 <b>${total.toLocaleString()}</b>건`);
+        }
+      } else {
+        parts.push(`표시 <b>${rowsLen.toLocaleString()}</b>건`);
+      }
+
+      if (isLimited) parts.push(`<span class="pill" style="margin-left:6px;">LIMIT 적용됨</span>`);
+      return parts.join(" · ");
+    }
+
+    function renderResultsTable(rows, rowLimit, totalRows) {
+      if (!rows || rows.length === 0) {
+        let head = `<div class="muted" style="margin:6px 0;">rows: <b>0</b></div>`;
+        if (totalRows !== null && totalRows !== undefined) {
+          const t = Number(totalRows);
+          if (!Number.isNaN(t)) head = `<div class="muted" style="margin:6px 0;">rows: <b>0</b> (총 ${t.toLocaleString()}건)</div>`;
+        }
+        return head + "<div class='muted'>(결과 없음)</div>";
+      }
+
+      const cols = Object.keys(rows[0]);
+
+      let header = `<div class="muted" style="margin:6px 0;">rows: <b>${rows.length}</b></div>`;
+      if (totalRows !== null && totalRows !== undefined) {
+        const total = Number(totalRows);
+        if (!Number.isNaN(total) && rows.length >= rowLimit && total > rows.length) {
+          header = `<div class="muted" style="margin:6px 0;">총 <b>${total.toLocaleString()}</b>건 중 <b>${rows.length.toLocaleString()}</b>건 표시</div>`;
+        } else if (!Number.isNaN(total)) {
+          header = `<div class="muted" style="margin:6px 0;">총 <b>${total.toLocaleString()}</b>건</div>`;
+        }
+      }
+
+      let html = header;
+      html += "<table><thead><tr>";
+      html += cols.map(c => `<th>${escapeHtml(c)}</th>`).join("");
+      html += "</tr></thead><tbody>";
+
+      for (const r of rows) {
+        html += "<tr>";
+        for (const c of cols) {
+          const v = (r[c] === null || r[c] === undefined) ? "" : String(r[c]);
+          html += `<td>${escapeHtml(v)}</td>`;
+        }
+        html += "</tr>";
+      }
+
+      html += "</tbody></table>";
+      return html;
+    }
+
+    function renderSources(sources, showText) {
+      if (!sources || sources.length === 0) return "";
+      let html = `<details><summary>sources (${sources.length})</summary><ul>`;
+      for (const s of sources) {
+        const id = s.id || "(unknown)";
+        const ns = (s.metadata && s.metadata.namespace) ? s.metadata.namespace : "-";
+        const score = (s.score === null || s.score === undefined) ? "-" : Number(s.score).toFixed(3);
+        html += `<li><b>${escapeHtml(id)}</b> <span class="muted">[${escapeHtml(ns)}, score=${escapeHtml(score)}]</span>`;
+        if (showText && s.text) {
+          html += `<details style="margin-top:8px;"><summary class="muted">원문 보기</summary><pre>${escapeHtml(s.text)}</pre></details>`;
+        }
+        html += `</li>`;
+      }
+      html += "</ul></details>";
+      return html;
+    }
+
+    async function callApi(payload) {
+      const res = await fetch("/api/v1/sql/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      return { ok: res.ok, data };
+    }
+
+    // ✅ “잘렸을 때만 include_total 자동 ON” 구현:
+    // 1) 먼저 include_total = 사용자가 체크한 값으로 호출
+    // 2) 결과 rows가 row_limit과 같고, total_rows가 없으면(또는 제한 여부 판단이 필요하면)
+    //    -> include_total을 자동 ON + 체크박스 표시도 ON
+    //    -> include_total=true로 한 번 더 호출해서 total_rows 받아와서 표시
+    btn.addEventListener("click", async () => {
+      const question = document.getElementById("question").value.trim();
+      const top_k = Number(document.getElementById("top_k").value || 5);
+      const row_limit = Number(document.getElementById("row_limit").value || 200);
+      const dialect = document.getElementById("dialect").value || "oracle";
+
+      const include_sources = includeSourcesEl.checked;
+      const show_source_text = showSourceTextEl.checked;
+
+      if (!question) {
+        outSql.textContent = "질문을 입력하세요.";
+        return;
+      }
+
+      setStatus("running");
+      showSummary("");
+      outSql.textContent = "생성 및 실행 중...";
+      outResult.innerHTML = "<div class='muted'>실행 중...</div>";
+      copyBtn.disabled = true;
+      lastSql = "";
+
+      // 1차 요청: include_total은 “사용자 선택” 그대로
+      const basePayload = {
+        question,
+        top_k,
+        row_limit,
+        dry_run: false,
+        dialect,
+        include_sources,
+        include_total: includeTotalEl.checked
+      };
+
+      try {
+        let { ok, data } = await callApi(basePayload);
+
+        if (!ok) {
+          setStatus("error");
+          outSql.textContent = "오류:\n" + JSON.stringify(data, null, 2);
+          outResult.innerHTML = "<div class='muted'>(실행 실패)</div>";
+          showSummary(`<strong>오류</strong>: ${escapeHtml(data.detail || "요청 실패")}`);
+          return;
+        }
+
+        // SQL 출력
+        lastSql = data.sql || "";
+        outSql.textContent = lastSql || "(sql이 비었습니다)";
+        copyBtn.disabled = !lastSql;
+
+        // 결과 출력(1차)
+        const rows1 = data.results || [];
+        const total1 = data.total_rows;
+        const isLimited1 = !!data.is_limited;
+
+        // ✅ “잘린 경우” 판단
+        // - rows가 row_limit과 같고(= 잘렸을 가능성 높음)
+        // - 아직 total_rows가 없고(include_total=false였던 경우)
+        // - 그리고 서버가 is_limited를 안 주거나/true일 때
+        const looksTruncated = (rows1.length >= row_limit);
+        const needTotal = looksTruncated && !includeTotalEl.checked && (total1 === null || total1 === undefined);
+
+        // 일단 1차 화면 표시
+        let html1 = renderResultsTable(rows1, row_limit, total1);
+        if (include_sources && data.sources) html1 += renderSources(data.sources, show_source_text);
+        outResult.innerHTML = html1;
+        showSummary(buildSummaryLine(data, rows1.length, row_limit));
+
+        // 2차 요청: “잘린 경우”에만 include_total 자동 ON + 재호출
+        if (needTotal) {
+          includeTotalEl.checked = true; // ✅ 체크박스 UI도 자동 ON
+
+          // total_rows만 필요하니 sources는 그대로 유지 (사용자 선택 유지)
+          const payload2 = { ...basePayload, include_total: true };
+
+          const r2 = await callApi(payload2);
+          if (r2.ok) {
+            data = r2.data; // total_rows 포함된 응답으로 교체
+            const rows2 = data.results || [];
+            const total2 = data.total_rows;
+
+            let html2 = renderResultsTable(rows2, row_limit, total2);
+            if (include_sources && data.sources) html2 += renderSources(data.sources, show_source_text);
+            outResult.innerHTML = html2;
+
+            showSummary(buildSummaryLine(data, rows2.length, row_limit));
+          }
+        }
+
+        setStatus("done");
+      } catch (e) {
+        setStatus("error");
+        outSql.textContent = "네트워크/서버 오류: " + String(e);
+        outResult.innerHTML = "<div class='muted'>(실행 실패)</div>";
+        showSummary(`<strong>오류</strong>: ${escapeHtml(String(e))}`);
+      }
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(lastSql);
+        copyBtn.textContent = "복사됨!";
+        setTimeout(() => (copyBtn.textContent = "SQL 복사"), 900);
+      } catch (e) {
+        alert("복사 실패: " + String(e));
+      }
+    });
+
+    // 초기 상태
+    setStatus("idle");
+    includeTotalEl.checked = false; // ✅ 초기 OFF 강제
+  </script>
+</body>
+</html>

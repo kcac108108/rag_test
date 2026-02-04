@@ -1,15 +1,17 @@
-import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from pathlib import Path
 
-# 1. 환경 변수 로드
-load_dotenv()
+from app.api.v1.router import api_router
+from app.core.logging import setup_logging
 
-# 2. LLM 초기화 (설치가 잘 되었는지 확인)
-try:
-    llm = ChatOpenAI(model="gpt-4o-mini")
-    response = llm.invoke("안녕? RAG 개발 환경 세팅 중이야.")
-    print("성공적으로 응답을 받았습니다:")
-    print(response.content)
-except Exception as e:
-    print(f"설정 중 오류가 발생했습니다: {e}")
+setup_logging()
+
+app = FastAPI(title="Text-to-SQL RAG API")
+app.include_router(api_router, prefix="/api/v1")
+
+WEB_DIR = Path(__file__).resolve().parent / "web"
+
+@app.get("/")
+def root():
+    return FileResponse(WEB_DIR / "index.html")

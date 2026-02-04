@@ -1,0 +1,10 @@
+Q: 국가별 주문 건수와 총매출(USD)을 보여줘.
+SQL:
+SELECT c.country,
+       COUNT(*) AS order_cnt,
+       SUM(o.total_amount) AS revenue_usd
+FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id
+GROUP BY c.country
+ORDER BY revenue_usd DESC
+LIMIT 200;

@@ -53,6 +53,7 @@ jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 kubernetes==35.0.0
 langchain==1.2.6
+langchain-chroma==1.1.0
 langchain-classic==1.0.1
 langchain-community==0.4.1
 langchain-core==1.2.7
@@ -87,6 +88,7 @@ opentelemetry-exporter-otlp-proto-grpc==1.39.1
 opentelemetry-proto==1.39.1
 opentelemetry-sdk==1.39.1
 opentelemetry-semantic-conventions==0.60b1
+oracledb==3.4.1
 orjson==3.11.5
 ormsgpack==1.12.2
 overrides==7.7.0

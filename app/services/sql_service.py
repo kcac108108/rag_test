@@ -126,6 +126,8 @@ def _enforce_rank_only_if_needed(*, question, sql, context, dialect, row_limit):
         "- Use CTE: base -> ranked -> outer WHERE RNK = N.\n"
         "- Do NOT use SELECT *.\n"
         "- Do NOT duplicate aliases.\n"
+        "- All output columns MUST have Korean aliases suitable for table headers (e.g., CNTY_NM AS 국가명).\n"
+        "- Use double quotes for Korean aliases in Oracle if needed (e.g., CNTY_NM AS \"국가명\").\n"
         "- Output SQL only.\n"
     )
     rewritten = rewrite_sql(question, sql, policy, context, dialect, row_limit)

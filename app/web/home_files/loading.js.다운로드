@@ -1,0 +1,719 @@
+(function($){
+	$.start_loding = function(){
+		/*
+		if( $("#loding_popup").length < 1 ){
+		 var inHtml = "<div id='loding_popup' style='position:absolute; display:none;  padding:10px;border:3px solid #ccc; background:#fff ;z-index:999999'>";
+			 inHtml += "		<img src='/img/_navi/loading.gif' alt='처리중입니다.' ></img>";
+			 inHtml += "</div>";
+			 inHtml += "<div id='loding_mask' style='position:absolute;z-index:999998;background-color:#000;display:none;left:0;top:0;'></div>";
+			$("body").append(inHtml);
+		}
+		var img_width = $("#loding_popup").width();
+		var img_height = $("#loding_popup").height();
+		var left =($(window).scrollLeft() + ($(window).width() - img_width) / 2);
+		var top = ($(window).scrollTop() + ($(window).height() - img_height) / 2);
+		var maskWidth = $(window).width();
+		var maskHeight = $(document).height();
+		$('#loding_mask').css({'width':maskWidth,'height':maskHeight});
+		$('#loding_mask').fadeTo("fast",0.7);
+		$("#loding_popup").css("left",left).css("top",top).css("display","block");
+		*/
+		
+		if( $("#loding_popup").length > 0 ){
+			$("#loding_popup").remove();
+		}
+		
+		
+		if( $("#loding_popup").length < 1 ){
+			/*
+			var inHtml = "<div id='loding_popup' style='position:absolute; display:none;  padding:10px;border:3px solid #ccc; background:#fff ;z-index:999999'>";
+			 inHtml += "		<img src='/img/_navi/loading.gif' alt='처리중입니다.' ></img>";
+			 inHtml += "</div>";
+			 inHtml += "<div id='loding_mask' style='position:absolute;z-index:999998;background-color:#000;display:none;left:0;top:0;'></div>";
+			$("body").append(inHtml);
+			*/
+			/*
+			var inHtml = "		<img id='loding_popup' src='/img/_navi/loading.gif' alt='처리중입니다.' style='position:absolute; display:none; z-index:999999' ></img>";
+			 inHtml += "<div id='loding_mask' style='position:absolute;z-index:999998;background-color:#000;display:none;left:0;top:0;'></div>";
+			$("body").append(inHtml);
+			*/
+			var inHtml = "<div id='loding_popup' class='loader' style='z-index:999999' ></div>";
+			 inHtml += "<div id='loding_mask' style='position:absolute;z-index:999998;background-color:#000;display:none;left:0;top:0;'></div>";
+			$("body").append(inHtml);
+			
+		}
+		
+		//var img_width = $("#loding_popup").width();
+		//var img_height = $("#loding_popup").height();
+		//var left =($(window).scrollLeft() + ($(window).width() - img_width) / 2);
+		//var top = ($(window).scrollTop() + ($(window).height() - img_height) / 2);
+		var maskWidth = $(window).width();
+		var maskHeight = $(document).height();
+		$('#loding_mask').css({'width':maskWidth,'height':maskHeight});
+		$('#loding_mask').fadeTo("fast",0.7);
+		//$("#loding_popup").css("left",left).css("top",top).css("display","block");
+		
+		
+	};
+	$.end_loding = function(){
+		$("#loding_popup").hide();
+		$('#loding_mask').hide();
+	};
+})(jQuery);
+
+var chkgrid = {gridID : undefined};
+var chkcell = {cellID : undefined ,chkval : undefined};
+function jsFormatterCell(rowid, val, rowObject, cm, rdata){
+    var result = "";
+    if(chkcell.chkval != val){ //check 값이랑 비교값이 다른 경우
+
+
+    	
+        var cellId = this.id + '_row_'+rowid+'-'+cm.name;
+        result = ' rowspan="5" id ="'+cellId+'" + name="cellRowspan"';
+
+        chkcell = {cellId:cellId, chkval:val};
+    }else{
+
+        result = 'style="display:none"  rowspanid="'+chkcell.cellId+'"'; //같을 경우 display none 처리
+    }
+    
+    return result;
+}
+
+function isNumber(val){
+//	alert(val)
+	var rex = /^[0-9,.]+$/;
+	return rex.test(val);
+}
+function cfn_openPop(url, name, width, height , scrollYn) {
+	/*
+	if(cfn_isUndefined(width)) {
+		width = 616;
+	}
+	if(cfn_isUndefined(height)) {
+		height = 400;
+	}
+	*/
+	var x = screen.availWidth;
+	var y = screen.availHeight;
+	var p;
+	x = (x - width) / 2;
+	y = (y - height) / 2;
+	
+	var scrollbars = (scrollYn == 'N') ? 0 : 1;
+	var status = "height="+height+",width="+width+",left="+x+",top="+y+",scrollbars="+scrollbars;
+	if (cfn_isUndefined(name)) {
+		p = window.open(url, "_blank", status);
+	} else {
+		p = window.open(url, name, status);
+	}
+//	return p;
+}
+
+
+function viewGuide(viewCode) {
+	/*
+	if(cfn_isUndefined(width)) {
+		width = 616;
+	}
+	if(cfn_isUndefined(height)) {
+		height = 400;
+	}
+	*/
+	var x = screen.availWidth;
+	var y = screen.availHeight;
+	var p;
+	x = (x - 650) / 2;
+	y = (y - 400) / 2;
+	
+	var scrollbars =  0;
+	//var status = "height="+650+",width="+400+",left="+x+",top="+y+",scrollbars="+scrollbars;
+	//window.open('/pdfjs/viewer.html', "_blank", status);
+	//window.open('/pdfjs/viewer.html', "_blank"); 
+	window.open('https://www.ktspi.or.kr/pdfjs/viewer.jsp?viewCode='+viewCode, "_blank");
+
+}
+
+
+function cfn_isUndefined(a) {
+	return typeof a == 'undefined';
+}
+
+
+
+//var dataLimit_cnt = 999999; //결과값 제한건수 
+//var excelDown_bool = false;//엑셀 다운 제한
+
+
+var dataLimit_cnt = 1; //결과값 제한건수 
+var excelDown_bool = true;//엑셀 다운 제한
+
+
+function dataLimit(originalData,msg){
+
+		if(excelDown_bool && !!msg ){//!!로 값 자체를 true false 로 바꾸어 사용
+			//alert("현재는 서비스 이용제한 기간으로 전체 데이터가 나오지 않습니다.");
+			//alert("정회원 종합형 서비스 혹은 정회원 선택형 서비스 신청 시  전체 데이터가 출력 됩니다.");
+			alert(msg);
+		}else if(excelDown_bool){
+			alert("정회원 종합형 서비스 혹은 정회원 선택형 서비스 신청 시 전체 데이터가 출력 됩니다.");
+		}
+		
+		
+		var outputData = originalData.slice(0, dataLimit_cnt);
+		
+		//alert(outputData.length);
+		
+		return outputData; 
+	}
+
+
+function dataLimitModal(originalData){
+
+	if($("#ISSUE_NO").val() == ""){
+		$("#voucher_Modal").modal();	
+	}
+	
+	//var outputData = originalData.slice(0, dataLimit_cnt); 여기서 잘랐었지만 ....쿼리에서 자르는거로 변경
+	
+	//alert(outputData.length);
+	
+	//return outputData;
+	return originalData;
+}
+
+function dataLimit_chart(originalData){
+	
+	var outputData = originalData.slice(0, dataLimit_cnt);
+	
+	return outputData; 
+}
+
+
+function TxprListLimit(){
+	 
+	if(excelDown_bool){
+		//alert("현재는 이용이 제한되어 있습니다.");	
+		alert("정회원 종합형 서비스 혹은 정회원 선택형 서비스 신청 시 데이터가 출력 됩니다");	
+	}
+	
+	//일단 사업자 리스트 뿌리는거 허용
+	return excelDown_bool;
+}
+
+function ExcelDownLimit(msg){
+
+		if(excelDown_bool && !!msg ){//!!로 값 자체를 true false 로 바꾸어 사용
+			alert(msg);
+		}else if(excelDown_bool){
+			alert("정회원 종합형 서비스 혹은 정회원 선택형 서비스 신청 시 전체 데이터가 출력 됩니다.");
+		}
+
+		return excelDown_bool;
+}
+
+function ExcelDownLimitModal(msg){
+
+	if(excelDown_bool && !!msg ){//!!로 값 자체를 true false 로 바꾸어 사용
+		alert(msg);
+	}else if(excelDown_bool){
+		//alert("정회원 종합형 서비스 혹은 정회원 선택형 서비스 신청 시 전체 데이터가 출력 됩니다.");
+		if($("#ISSUE_NO").val() == ""){
+			$("#voucher_Modal").modal();	
+		}
+	}
+
+	return excelDown_bool;
+}
+
+function selfStatisticsLimit(){
+	
+	if(excelDown_bool){
+		//alert("현재는 이용이 제한되어 있습니다.");	
+		alert("정회원으로 가입하셔야 이용 가능 합니다..");
+	}
+	//일단 사업자 리스트 뿌리는거 허용
+	return excelDown_bool;
+}
+
+/*
+$(document).keypress(function (e){
+	if(e.keyCode == 13){
+		//엔터금지
+		e.preventDefault();
+	}	
+});*/
+
+
+function Fr_ToGetDay(startDateStr, endDateStr){
+
+	var dateStartStr = startDateStr.replace(/-/gi,"");
+	var dateEndStr = endDateStr.replace(/-/gi,"");
+	
+	var startYear=Number(dateStartStr.substring(0,4));
+	var startMonth=Number(dateStartStr.substring(4,6));
+	var startDay=Number(dateStartStr.substring(6));
+	
+	var endYear=Number(dateEndStr.substring(0,4));
+	var endMonth=Number(dateEndStr.substring(4,6));
+	var endDay=Number(dateEndStr.substring(6));
+	
+	var startDt = new Date(startYear,startMonth-1,startDay);
+	var endDt = new Date(endYear,endMonth-1,endDay);
+	
+	var resultDt = Math.floor(endDt.valueOf()/(24*60*60*1000)- startDt.valueOf()/(24*60*60*1000));
+	
+	return resultDt;
+	
+}
+
+var vparamsCheck = location.href.substr(location.href.indexOf("?")+1);
+var vparamsArray = vparamsCheck.split("&"); 
+/*
+vparamsArray.sort(function(a,b){
+	return a-b;
+});
+*/
+var shortcuts = "";
+var shortcutsArray = null;
+
+var hidden_FILTER1_CODE_VALUE = "";
+var hidden_FILTER2_CODE_VALUE = "";
+var hidden_FILTER3_CODE_VALUE = "";
+
+var hidden_FILTER1_KOR_VALUE = "";
+var hidden_FILTER2_KOR_VALUE = "";
+var hidden_FILTER3_KOR_VALUE = "";
+
+var hidden_FILTER1_GODS_UNIT = "";
+var hidden_FILTER2_GODS_UNIT = "";
+var hidden_FILTER3_GODS_UNIT = "";
+
+var GOD_DIV1_CHECK = "";
+var GOD_DIV2_CHECK = "";
+var GOD_DIV3_CHECK = "";
+
+var FTA_check = "";
+var FTA_Select2_value = "";
+
+var shortcuts_hs2_cd_check = "";
+var shortcuts_hs2_cd_value = "";
+
+
+var shortcuts_cus00401_selectcd_check = "";
+var shortcuts_cus00401_selectcd_value = "";
+
+var shortcuts_the007_selectcd_check = "";
+var shortcuts_the007_selectcd_value = "";
+
+for(var m=0;m<vparamsArray.length;m++){
+	var vtempArray = vparamsArray[m].split("=");
+	if(vtempArray.length > 1){
+		//alert(vtempArray[0] + "==" + vtempArray[1]);
+		if(vtempArray[0] == "SHORTCUTS"){
+			shortcuts = decodeURIComponent(unescape(vtempArray[1])); 
+		}
+	}
+}
+
+
+
+
+//$( document ).ready( function() {
+$( window ).load( function() {
+	
+	if(shortcuts != "") {
+		//alert(shortcuts);
+		shortcutsArray = shortcuts.split("&");
+	
+		//1순위
+		//text 라디오,체크박스 선택
+		for(var n=0;n<shortcutsArray.length;n++){
+			
+			var vshortcutsArray = shortcutsArray[n].split("=");
+			if(vshortcutsArray.length > 1 && vshortcutsArray[1] !="" ){
+				//alert(vshortcutsArray[0] + "==" + vshortcutsArray[1]);
+				if(vshortcutsArray[0] != "MAX_YEAR_MON"){ //이건 시스템 세팅 따라가자..
+					
+					if( $("#"+vshortcutsArray[0]).attr("type") == "text" || $("#"+vshortcutsArray[0]).attr("type") == "hidden" ){
+						$("#"+vshortcutsArray[0]).val(vshortcutsArray[1]);
+						
+						if(vshortcutsArray[0] == "ZipCdNm"){
+							shortcuts_the007_selectcd_value = vshortcutsArray[1];
+						}
+						
+						if(vshortcutsArray[0] == "searchinput"){
+							hsFind();
+						}
+						
+					}else if( $("#"+vshortcutsArray[0]).attr("type") == "radio" ||  $("#"+vshortcutsArray[0]).attr("type") == "checkbox"){
+						
+						if($("#"+vshortcutsArray[0]).attr("type") == "radio"){
+							
+							for(var i=0;i<$(":radio[name='" + vshortcutsArray[0] + "']").length;i++){
+			    				$(":radio[name='" + vshortcutsArray[0] + "']").eq(i).removeAttr("checked");
+			    			}
+							
+							
+			        		
+						}else{
+							var obj = "input[name='" + vshortcutsArray[0] + "']" ;
+			        		for(var i=0;i<$(obj).length;i++){
+			    				$(obj).eq(i).removeAttr("checked");
+			    			}
+			        			
+			        		
+						}
+						
+						
+						var selector = "#"+vshortcutsArray[0]+"[value='"+vshortcutsArray[1]+"']";
+		        		
+						//alert(selector);
+						$(selector).attr("checked","checked");
+		        		$(selector).prop("checked",true);
+		        		
+		        		$(selector).click();
+					
+					}else{
+						
+					}
+					
+				}
+				
+			}
+			
+		}
+		//text 라디오,체크박스 선택
+		
+		
+		
+		
+		//2순위
+		//상세조회때문에....그리드 타입이 중간에 섞이면 다 초기화 된다.
+		for(var n=0;n<shortcutsArray.length;n++){
+			
+			var vshortcutsArray = shortcutsArray[n].split("=");
+			if(vshortcutsArray.length > 1 && vshortcutsArray[1] !="" ){
+				//alert(vshortcutsArray[0] + "==" + vshortcutsArray[1]);
+				if(vshortcutsArray[0] != "MAX_YEAR_MON"){ //이건 시스템 세팅 따라가자..
+					
+					
+						if( vshortcutsArray[0] == "SELECT_DIV1" || vshortcutsArray[0] == "SELECT_DIV2" || vshortcutsArray[0] == "SELECT_DIV3" ){
+							$("#"+vshortcutsArray[1]).click();
+							
+							//alert(vshortcutsArray[0] + "==" + vshortcutsArray[1]);
+							
+							if(vshortcutsArray[0] == "SELECT_DIV1" && vshortcutsArray[1] == "GODS_DIV" ){
+								GOD_DIV1_CHECK = "Y";	
+							}
+							
+							if(vshortcutsArray[0] == "SELECT_DIV2" && vshortcutsArray[1] == "GODS_DIV" ){
+								GOD_DIV2_CHECK = "Y";	
+							}
+							
+							if(vshortcutsArray[0] == "SELECT_DIV3" && vshortcutsArray[1] == "GODS_DIV" ){
+								GOD_DIV3_CHECK = "Y";	
+							}
+							
+							
+						}else if( vshortcutsArray[0] == "FILTER1_CODE_VALUE"){
+							hidden_FILTER1_CODE_VALUE = vshortcutsArray[1]; 
+						}else if( vshortcutsArray[0] == "FILTER2_CODE_VALUE"){
+							hidden_FILTER2_CODE_VALUE = vshortcutsArray[1];
+						}else if( vshortcutsArray[0] == "FILTER3_CODE_VALUE"){
+							hidden_FILTER3_CODE_VALUE = vshortcutsArray[1];
+						}else if( vshortcutsArray[0] == "FILTER1_KOR_VALUE"){
+							hidden_FILTER1_KOR_VALUE = vshortcutsArray[1];
+						}else if( vshortcutsArray[0] == "FILTER1_KOR_VALUE"){
+							hidden_FILTER2_KOR_VALUE = vshortcutsArray[1];
+						}else if( vshortcutsArray[0] == "FILTER1_KOR_VALUE"){
+							hidden_FILTER3_KOR_VALUE = vshortcutsArray[1];
+						}else if( vshortcutsArray[0] == "FILTER1_GODS_UNIT"){
+							hidden_FILTER1_GODS_UNIT = vshortcutsArray[1];
+						}else if( vshortcutsArray[0] == "FILTER2_GODS_UNIT"){
+							hidden_FILTER2_GODS_UNIT = vshortcutsArray[1];
+						}else if( vshortcutsArray[0] == "FILTER3_GODS_UNIT"){
+							hidden_FILTER3_GODS_UNIT = vshortcutsArray[1];
+						}else{
+							
+						}
+						
+						
+						//FTA 두번째 선택은 ajax로 불러오기때문에 시점차이가 발생한다.그래서 맨마지막에 다시 한번 해주자
+						if(vshortcutsArray[0] == "SelectCd1" && vshortcutsArray[1].substring(0,3) == "FTA" ){
+							FTA_check = "Y";
+						}
+						
+						if(FTA_check == "Y" && vshortcutsArray[0] == "SelectCd2"){
+							FTA_Select2_value = vshortcutsArray[1];
+						}
+						
+						
+						//거래품명 ajax로 받고 화면에서 처리한다.   
+						if(vshortcutsArray[0] == "MENU_CODE" && ( vshortcutsArray[1] == "THE00601"  ||  vshortcutsArray[1] == "MAR00301" ) ){
+							shortcuts_hs2_cd_check = "Y";
+						}
+						
+						if(shortcuts_hs2_cd_check == "Y" && vshortcutsArray[0] == "HS2_CD"){
+							shortcuts_hs2_cd_value = vshortcutsArray[1];
+						}
+						
+						//거래품명 ajax로 받고 화면에서 처리한다.   
+						if(vshortcutsArray[0] == "MENU_CODE" && vshortcutsArray[1] == "CUS00401"  ){
+							shortcuts_cus00401_selectcd_check = "Y";
+						}
+						
+						//기업무역활동 처리
+						if(vshortcutsArray[0] == "MENU_CODE" && vshortcutsArray[1] == "THE00701"  ){
+							shortcuts_the007_selectcd_check = "Y";
+						}
+
+						
+						if(shortcuts_cus00401_selectcd_check == "Y" && vshortcutsArray[0] == "SelectCd"){
+							//shortcuts_cus00401_selectcd_value = vshortcutsArray[1];
+							$("#SelectCd").val(vshortcutsArray[1]);
+						}
+						
+					
+				}
+				
+			}
+			
+		}
+		//상세조회때문에....그리드 타입이 중간에 섞이면 다 초기화 된다.
+		
+		
+		
+		//select 선택
+		for(var n=0;n<shortcutsArray.length;n++){
+			
+			var vshortcutsArray = shortcutsArray[n].split("=");
+			if(vshortcutsArray.length > 1 && vshortcutsArray[1] !="" ){
+				//alert(vshortcutsArray[0] + "==" + vshortcutsArray[1]);
+				if(vshortcutsArray[0] != "MAX_YEAR_MON"){ //이건 시스템 세팅 따라가자..
+					
+					//여기선  select 만 처리하자
+					if( $("select[name="+vshortcutsArray[0]+"]").length >0 ){
+						
+						if( $("select[name="+vshortcutsArray[0]+"]").siblings(".btn-group").length > 0 && $("select[name="+vshortcutsArray[0]+"]").siblings(".btn-group").children().attr("class").indexOf("multiselect") > -1 ){
+							//이건 멀티 셀렉트 처리
+							//alert("mSelect "+vshortcutsArray[0]+"=="+vshortcutsArray[1]);
+							
+							
+							if(vshortcutsArray[0] == "Select1" && $("#FILTER1_CODE_VALUE").length > 0  ){
+								var imsi_ = hidden_FILTER1_CODE_VALUE.replace(/ /gi,"").split(",");
+				        		$("select[name="+vshortcutsArray[0]+"]").val(imsi_);
+				        		$("select[name="+vshortcutsArray[0]+"]").multiselect("refresh");
+				        		
+				        		
+							}else if(vshortcutsArray[0] == "Select2" && $("#FILTER2_CODE_VALUE").length > 0  ){
+								var imsi_ = hidden_FILTER2_CODE_VALUE.replace(/ /gi,"").split(",");
+				        		$("select[name="+vshortcutsArray[0]+"]").val(imsi_);
+				        		$("select[name="+vshortcutsArray[0]+"]").multiselect("refresh");
+				        		
+				        		
+							}else if(vshortcutsArray[0] == "Select3" && $("#FILTER3_CODE_VALUE").length > 0  ){
+								var imsi_ = hidden_FILTER3_CODE_VALUE.replace(/ /gi,"").split(",");
+				        		$("select[name="+vshortcutsArray[0]+"]").val(imsi_);
+				        		$("select[name="+vshortcutsArray[0]+"]").multiselect("refresh");
+				        		
+							}else if(vshortcutsArray[0] == "NatnCd" && $("#NATN_CODE").length > 0 ){
+								if( $("#NATN_CODE").val() != "" ) {
+									var imsi_ = $("#NATN_CODE").val().replace(/ /gi,"").split(",");
+					        		$("select[name="+vshortcutsArray[0]+"]").val(imsi_);
+					        		$("select[name="+vshortcutsArray[0]+"]").multiselect("refresh");
+					        			
+								}
+								
+							}else if( (vshortcutsArray[0] == "ScaleCd" || vshortcutsArray[0] == "NatnCd" || vshortcutsArray[0] == "ZipCd")  && shortcuts_the007_selectcd_check =="Y" ){
+								if(shortcuts_the007_selectcd_value != "" ) {
+									var imsi_ = shortcuts_the007_selectcd_value.replace(/ /gi,"").split(",");
+					        		$("select[name="+vshortcutsArray[0]+"]").val(imsi_);
+					        		$("select[name="+vshortcutsArray[0]+"]").multiselect("refresh");
+					        			
+								}
+								
+							}else{
+								var imsi_ = vshortcutsArray[1].replace(/ /gi,"").split(",");
+				        		$("select[name="+vshortcutsArray[0]+"]").val(imsi_);
+				        		$("select[name="+vshortcutsArray[0]+"]").multiselect("refresh");
+				        	}
+							
+						
+							
+						}else{
+							
+							//alert("Select "+vshortcutsArray[0]+"=="+vshortcutsArray[1]);
+							
+							for(var r=0;r<$("select[name="+vshortcutsArray[0]+"] option").length;r++){
+								$("select[name="+vshortcutsArray[0]+"] option:eq("+r+")").removeAttr("selected");
+							}
+							
+							$("select[name="+vshortcutsArray[0]+"]").val(vshortcutsArray[1]).attr("selected","selected");
+							 
+							searchFieldChange(vshortcutsArray[0]);
+							
+							
+							if(GOD_DIV1_CHECK == "Y"){
+			        			$("#FILTER1_CODE").text(hidden_FILTER1_CODE_VALUE);
+			        			$("#FILTER1_KOR").text(hidden_FILTER1_KOR_VALUE);
+			        			
+			        			$("#FILTER1_CODE_VALUE").val(hidden_FILTER1_CODE_VALUE);
+			        			//$("#FILTER1_KOR_VALUE").val(hidden_FILTER1_KOR_VALUE);
+			        			$("#FILTER1_GODS_UNIT").val(hidden_FILTER1_GODS_UNIT);
+			        		}
+			        		
+			        		if(GOD_DIV2_CHECK == "Y"){
+			        			$("#FILTER2_CODE").text(hidden_FILTER2_CODE_VALUE);
+			        			$("#FILTER2_KOR").text(hidden_FILTER2_KOR_VALUE);
+			        			
+			        			$("#FILTER2_CODE_VALUE").val(hidden_FILTER2_CODE_VALUE);
+			        			//$("#FILTER2_KOR_VALUE").val(hidden_FILTER2_KOR_VALUE);
+			        			$("#FILTER2_GODS_UNIT").val(hidden_FILTER2_GODS_UNIT);
+			        		}
+			        		
+			        		
+			        		if(GOD_DIV3_CHECK == "Y"){
+			        			$("#FILTER3_CODE").text(hidden_FILTER3_CODE_VALUE);
+			        			$("#FILTER3_KOR").text(hidden_FILTER3_KOR_VALUE);
+			        			
+			        			$("#FILTER3_CODE_VALUE").val(hidden_FILTER3_CODE_VALUE);
+			        			//$("#FILTER3_KOR_VALUE").val(hidden_FILTER3_KOR_VALUE);
+			        			$("#FILTER3_GODS_UNIT").val(hidden_FILTER3_GODS_UNIT);
+			        		}
+			        		
+			        		
+							
+						}
+						
+					}else{
+						
+					}
+					//여기선  select 만 처리하자
+					
+				}
+				
+			}
+			
+		}
+		
+		
+		//alert("t1");
+		if(shortcuts_hs2_cd_check == "" && FTA_check == "" ){
+			goSearch();	
+		}else{
+			//alert("ttt");
+		}
+		
+		
+	}
+});
+
+/** 
+ * 작성자  : 정서빈
+ * param : 쿠키명, 쿠키값, 만료일, 특정 시
+ * desc  : 현재 날짜로 부터 +expiredays 의 absoluteTime 에 만료되는 지속쿠키 생성
+ * */
+function setCookie(name, value, expiredays, absoluteTime) { 
+	
+	var todayDate = new Date();
+	var expireDate = null;
+	
+	if(absoluteTime == null){
+		expireDate = new Date(todayDate.getFullYear(),todayDate.getMonth(),todayDate.getDate() + expiredays);
+	}else{
+		//특정시 기준
+		expireDate = new Date(todayDate.getFullYear(),todayDate.getMonth(),todayDate.getDate() + expiredays,absoluteTime,0,0 );
+	}
+    document.cookie = name + "=" + escape(value) + "; path=/; expires=" + expireDate.toGMTString() + ";"; 
+}
+/** 
+ * 작성자  : 정서빈
+ * param : 쿠키명
+ * desc  : name 과 일치하는 쿠키명이 있을 시 'return value'
+ * */
+function getCookie( name ){
+	var nameOfCookie = name + "=";
+	var x = 0;
+	
+	while (x <= document.cookie.length) {
+		var y = (x+nameOfCookie.length);
+		if (document.cookie.substring( x, y ) == nameOfCookie) {
+			if ((endOfCookie=document.cookie.indexOf( ";", y )) == -1) {
+				endOfCookie = document.cookie.length;
+			}
+			return unescape(document.cookie.substring(y, endOfCookie));
+		}
+		x = document.cookie.indexOf(" ", x ) + 1;
+		if (x==0) {
+			break;
+		}
+	}
+	return "";
+}
+
+
+function hscodeLocationChange(year){
+	console.log( window.location);
+	var _url = window.location.href.split("?");
+	var _params = _url[1].split("&");
+	var _temp = "";
+	var typeNewCheck = false;
+	var cYearCheck = false;
+	for(var i=0;i<_params.length;i++){
+		
+		var key = "";
+		var value ="";
+		if(_params[i].split("=").length == 2){
+			key = _params[i].split("=")[0];
+			if(key == "cYear"){
+				value = year+"";
+			}else{
+				value = _params[i].split("=")[1];	
+			}
+			
+			if(key == "type"){
+				typeNewCheck = true;		
+			}
+			if(key == "cYear"){
+				cYearCheck = true;		
+			}
+			
+		}else{
+			key = _params[i].split("=")[0];
+			if(key == "cYear"){
+				value = year+"";
+			}else{
+				value = "";	
+			}
+			
+			if(key == "type"){
+				typeNewCheck = true;		
+			}
+			if(key == "cYear"){
+				cYearCheck = true;		
+			}
+		}
+		_temp = _temp+key+"="+value+"&";
+	}
+	
+	if(typeNewCheck == false){
+		_temp = _temp  + "type=NEW&";
+	}
+	
+	if(cYearCheck == false){
+		_temp = _temp  + "cYear="+year+"&";
+	}
+	
+	
+	if( (typeNewCheck == false || cYearCheck == false) || (typeNewCheck == true && cYearCheck == true) ){
+		location.href = (_url[0]+"?"+_temp).substring(0,(_url[0]+"?"+_temp).length-1);
+	}else{
+		location.href = (_url[0]+"?"+_temp);
+	}
+	
+	
+	
+	
+}

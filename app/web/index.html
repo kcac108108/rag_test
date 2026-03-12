@@ -3,181 +3,283 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Text-to-SQL (RAG)</title>
+  <title>AI 무역 통계 질의</title>
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f172a;
-      --text:#e5e7eb;
-      --muted:#a3a3a3;
-      --line:rgba(255,255,255,.10);
-      --accent:#7c3aed;
-      --accent2:#22c55e;
+      --bg:#f4f7fb;
+      --panel:#ffffff;
+      --panel-soft:#f8fafc;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#dbe3ee;
+      --line-strong:#c7d2e1;
+      --accent:#2563eb;
+      --accent-soft:#eff6ff;
+      --accent2:#10b981;
       --danger:#ef4444;
       --warn:#f59e0b;
-      --shadow: 0 18px 50px rgba(0,0,0,.35);
-      --radius: 16px;
+      --shadow: 0 12px 30px rgba(15, 23, 42, .08);
+      --radius: 18px;
     }
     *{ box-sizing:border-box; }
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      background: radial-gradient(1200px 700px at 10% 0%, rgba(124,58,237,.35), transparent 55%),
-                  radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.20), transparent 60%),
-                  var(--bg);
+      background:
+        radial-gradient(900px 500px at 0% 0%, rgba(37,99,235,.10), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(16,185,129,.08), transparent 55%),
+        var(--bg);
       color:var(--text);
       line-height:1.5;
     }
-    .wrap{ max-width: 980px; margin: 28px auto; padding: 0 16px 60px; }
-    .header{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
-    .title h1{ margin:0; font-size:22px; letter-spacing:-0.2px; }
-    .title p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
-    .badge{
-      padding: 6px 10px;
+    a{ color:inherit; text-decoration:none; }
+    .wrap{ max-width: 1180px; margin: 0 auto; padding: 24px 18px 56px; }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding: 16px 18px;
+      background: rgba(255,255,255,.88);
+      border:1px solid rgba(219,227,238,.9);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 12px;
+      z-index: 30;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+    .brand-badge{
+      width:44px; height:44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #60a5fa);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      box-shadow: 0 8px 20px rgba(37,99,235,.22);
+      flex: 0 0 auto;
+    }
+    .brand h1{
+      margin:0;
+      font-size: 22px;
+      letter-spacing: -.2px;
+    }
+    .brand p{
+      margin: 2px 0 0;
+      color:var(--muted);
+      font-size: 13px;
+    }
+    .top-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .link-btn, .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 9px 12px;
       border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
       border-radius: 999px;
+      background:#fff;
+      color:var(--text);
       font-size:12px;
-      color:#d1d5db;
       white-space:nowrap;
     }
-    .kbd{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    .link-btn:hover{ background: var(--panel-soft); }
+    .badge code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 11px;
-      padding: 2px 6px;
-      border: 1px solid var(--line);
-      border-bottom-width: 2px;
-      border-radius: 8px;
-      background: rgba(255,255,255,.04);
-      color:#e5e7eb;
+      color:#334155;
     }
-    .grid{ display:grid; grid-template-columns: 1.15fr .85fr; gap:14px; margin-top: 14px; }
-    @media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
+
+    .hero{
+      margin-top: 16px;
+      padding: 24px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(255,255,255,.92) 40%, rgba(16,185,129,.05));
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    .hero h2{
+      margin:0;
+      font-size: 28px;
+      line-height:1.25;
+      letter-spacing:-.3px;
+    }
+    .hero p{
+      margin: 10px 0 0;
+      color:#475569;
+      font-size:14px;
+    }
+    .hero-card{
+      background: rgba(255,255,255,.86);
+      border:1px solid rgba(255,255,255,.9);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 8px 20px rgba(15,23,42,.06);
+    }
+    .hero-mini-title{
+      font-size:12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight:700;
+    }
+    .hero-list{ margin:0; padding-left: 18px; color:#334155; font-size:13px; }
+    .hero-list li{ margin:7px 0; }
+
+    .grid{ display:grid; grid-template-columns: 1.08fr .92fr; gap:16px; margin-top: 16px; }
+    @media (max-width: 980px){
+      .hero, .grid{ grid-template-columns: 1fr; }
+      .topbar{ position: static; }
+    }
+
     .card{
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background: var(--panel);
       border:1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow:hidden;
     }
     .card .card-hd{
-      padding: 14px 16px;
+      min-height: 72px;
+      padding: 0 18px;
       border-bottom: 1px solid var(--line);
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      background: rgba(0,0,0,.15);
+      background: linear-gradient(180deg, #fff, #f8fbff);
     }
-    .card .card-hd h2{ margin:0; font-size:14px; letter-spacing:.2px; color:#f3f4f6; }
-    .card .card-bd{ padding: 14px 16px 16px; }
+    .card .card-hd h2{
+      margin:0;
+      font-size:15px;
+      letter-spacing:.1px;
+      color:#0f172a;
+    }
+    .card .card-bd{ padding: 18px; }
 
-    label{ display:block; font-size:12px; color:#cbd5e1; margin-bottom:6px; }
+    label{ display:block; font-size:12px; color:#475569; margin-bottom:6px; font-weight:600; }
     textarea, input[type="number"], select{
       width:100%;
-      background: rgba(255,255,255,.04);
+      background:#fff;
       color:var(--text);
-      border:1px solid var(--line);
-      border-radius: 12px;
-      padding: 10px 12px;
+      border:1px solid var(--line-strong);
+      border-radius: 14px;
+      padding: 11px 13px;
       outline:none;
       transition: .15s ease;
     }
-    textarea{ min-height: 120px; resize: vertical; }
+    textarea{ min-height: 150px; resize: vertical; }
     textarea:focus, input:focus, select:focus{
-      border-color: rgba(124,58,237,.65);
-      box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+      border-color: rgba(37,99,235,.55);
+      box-shadow: 0 0 0 4px rgba(37,99,235,.10);
     }
 
-    .row{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-top: 12px; }
+    .row{ display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-top: 14px; }
     .row .col{ flex: 1 1 160px; min-width: 160px; }
-    .row .col.small{ flex: 0 0 140px; min-width: 140px; }
+    .row .col.small{ flex: 0 0 150px; min-width: 150px; }
 
-    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 14px; }
     button{
       border: 1px solid var(--line);
-      background: rgba(255,255,255,.06);
+      background: #fff;
       color: var(--text);
-      padding: 10px 14px;
+      padding: 11px 15px;
       border-radius: 12px;
       cursor:pointer;
       transition: .15s ease;
-      font-weight:600;
-      letter-spacing:.2px;
+      font-weight:700;
+      letter-spacing:.1px;
     }
-    button:hover{ transform: translateY(-1px); background: rgba(255,255,255,.09); }
+    button:hover{ transform: translateY(-1px); background:#f8fbff; }
     button:active{ transform: translateY(0); }
     button.primary{
-      border-color: rgba(124,58,237,.55);
-      background: linear-gradient(180deg, rgba(124,58,237,.55), rgba(124,58,237,.28));
+      border-color: rgba(37,99,235,.25);
+      background: linear-gradient(180deg, #3b82f6, #2563eb);
+      color:#fff;
+      box-shadow: 0 8px 18px rgba(37,99,235,.18);
     }
-    button.primary:hover{ filter: brightness(1.05); }
+    button.primary:hover{ filter: brightness(1.03); }
     button[disabled]{ opacity:.55; cursor:not-allowed; transform:none !important; }
 
     .opts{
       display:flex;
       gap:14px;
       flex-wrap:wrap;
-      padding: 10px 12px;
-      border:1px dashed rgba(255,255,255,.18);
-      border-radius: 12px;
-      background: rgba(255,255,255,.03);
-      margin-top: 12px;
+      padding: 12px 14px;
+      border:1px dashed #cbd5e1;
+      border-radius: 14px;
+      background: var(--panel-soft);
+      margin-top: 14px;
     }
-    .opt{ display:flex; gap:8px; align-items:center; color:#d1d5db; font-size:12px; }
+    .opt{ display:flex; gap:8px; align-items:center; color:#334155; font-size:13px; }
+    .opt label{ margin:0; color:#334155; font-weight:500; }
     .opt input{ transform: translateY(1px); }
 
     .pill{
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding: 6px 10px;
+      padding: 7px 12px;
       border-radius: 999px;
       border: 1px solid var(--line);
       font-size: 12px;
-      background: rgba(255,255,255,.05);
-      color:#e5e7eb;
+      background: #fff;
+      color:#334155;
       white-space:nowrap;
     }
     .dot{ width:8px;height:8px;border-radius:999px;background:#94a3b8; box-shadow: 0 0 0 4px rgba(148,163,184,.12); }
-    .pill.running .dot{ background: var(--warn); box-shadow: 0 0 0 4px rgba(245,158,11,.15); }
-    .pill.done .dot{ background: var(--accent2); box-shadow: 0 0 0 4px rgba(34,197,94,.14); }
-    .pill.error .dot{ background: var(--danger); box-shadow: 0 0 0 4px rgba(239,68,68,.16); }
+    .pill.running .dot{ background: var(--warn); box-shadow: 0 0 0 4px rgba(245,158,11,.12); }
+    .pill.done .dot{ background: var(--accent2); box-shadow: 0 0 0 4px rgba(16,185,129,.12); }
+    .pill.error .dot{ background: var(--danger); box-shadow: 0 0 0 4px rgba(239,68,68,.12); }
 
     .summarybar{
       margin-top:12px;
-      padding: 12px 12px;
-      border: 1px solid rgba(124,58,237,.35);
-      border-radius: 14px;
-      background: linear-gradient(180deg, rgba(124,58,237,.20), rgba(255,255,255,.03));
+      padding: 14px 14px;
+      border: 1px solid #bfdbfe;
+      border-radius: 16px;
+      background: linear-gradient(180deg, var(--accent-soft), #fff);
       display:flex;
       gap:10px;
       align-items:flex-start;
       flex-wrap:wrap;
     }
-    .summarybar strong{ color:#f3f4f6; font-weight:800; letter-spacing:.2px; }
-    .summarybar .mini{ color:#d1d5db; font-size:13px; }
+    .summarybar strong{ color:#1e3a8a; font-weight:800; letter-spacing:.2px; }
+    .summarybar .mini{ color:#334155; font-size:14px; }
     .summarybar b{ font-weight:800; }
 
     .section-title{
       font-size: 13px;
-      color:#cbd5e1;
+      color:#334155;
       margin: 0 0 8px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
+      font-weight:700;
     }
-    .section-title .hint{ color:var(--muted); font-size:12px; }
+    .section-title .hint{ color:var(--muted); font-size:12px; font-weight:500; }
 
     pre{
       margin:0;
       border: 1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(0,0,0,.25);
-      padding: 12px;
+      border-radius: 16px;
+      background: #f8fafc;
+      padding: 14px;
       overflow:auto;
       white-space: pre-wrap;
+      color:#0f172a;
+      min-height: 120px;
     }
 
     table{
@@ -185,77 +287,99 @@
       border-collapse: collapse;
       margin-top: 10px;
       overflow:hidden;
-      border-radius: 14px;
+      border-radius: 16px;
       border: 1px solid var(--line);
-      background: rgba(0,0,0,.20);
+      background: #fff;
     }
     th, td{
-      padding: 10px 10px;
-      border-bottom: 1px solid var(--line);
-      border-right: 1px solid rgba(255,255,255,.06);
+      padding: 11px 10px;
+      border-bottom: 1px solid #e5edf5;
+      border-right: 1px solid #eef2f7;
       text-align:left;
       font-size: 13px;
-      color:#e5e7eb;
+      color:#1f2937;
     }
     th{
       position:sticky;
       top:0;
-      background: rgba(255,255,255,.06);
+      background: #f8fafc;
       font-size:12px;
-      color:#f3f4f6;
+      color:#334155;
+      font-weight:800;
     }
-    tr:hover td{ background: rgba(255,255,255,.03); }
+    tr:hover td{ background: #f8fbff; }
     td:last-child, th:last-child{ border-right:none; }
     tr:last-child td{ border-bottom:none; }
 
     details{
       margin-top: 10px;
       border: 1px solid var(--line);
-      border-radius: 14px;
-      background: rgba(255,255,255,.03);
-      padding: 10px 12px;
+      border-radius: 16px;
+      background: #fff;
+      padding: 12px 14px;
     }
-    details > summary{ cursor:pointer; color:#e5e7eb; font-weight:700; }
-    details ul{ margin: 10px 0 0 18px; color:#d1d5db; }
+    details > summary{ cursor:pointer; color:#1f2937; font-weight:700; }
+    details ul{ margin: 10px 0 0 18px; color:#334155; }
     details li{ margin: 8px 0; }
     details pre{ margin-top: 8px; }
     .footer-note{ margin-top: 14px; color: var(--muted); font-size: 12px; }
+    .muted{ color: var(--muted); }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="header">
-      <div class="title">
-        <h1>Text-to-SQL (RAG)</h1>
-        <p>질문을 입력하면 RAG 컨텍스트를 바탕으로 SQL을 생성하고(옵션) DB 실행 결과까지 표시합니다.</p>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">AI</div>
+        <div>
+          <h1>AI 무역 통계 질의</h1>
+          <p>자연어 질문으로 무역 데이터를 조회하고 SQL 생성 및 실행 결과를 확인합니다.</p>
+        </div>
       </div>
-      <div class="badge">Backend: <span class="kbd">/api/v1/sql/query</span></div>
+      <div class="top-actions">
+        <a class="link-btn" href="/ai">AI 메인으로</a>
+        <!-- <div class="badge">Backend: <code>/api/v1/sql/query</code></div> -->
+      </div>
+    </div>
+
+    <div class="hero">
+      <div>
+        <h2>질문 한 번으로<br>SQL 생성부터 결과 확인까지</h2>
+        <p>무역통계 분석 질문을 입력하면 RAG 기반 컨텍스트를 활용해 SQL을 만들고, 필요 시 DB 실행 결과와 출처 정보까지 한 화면에서 보여줍니다.</p>
+      </div>
+      <div class="hero-card">
+        <div class="hero-mini-title">질문 예시</div>
+        <ul class="hero-list">
+          <li>2025년 국가별 수출금액합계와 수입금액합계를 보여줘</li>
+          <li>수출금액합계 기준 2위 국가의 실적을 알려줘</li>
+          <li>월별 무역수지 추이를 국가명 기준으로 보여줘</li>
+        </ul>
+      </div>
     </div>
 
     <div class="grid">
-      <!-- Left: Input -->
       <div class="card">
         <div class="card-hd">
-          <h2>입력</h2>
-          <span class="pill" id="statusPill"><span class="dot"></span><span id="status">idle</span></span>
+          <h2>질문 입력</h2>
+          <span class="pill" id="statusPill"><span class="dot"></span><span id="status">대기</span></span>
         </div>
         <div class="card-bd">
           <label>질문</label>
-          <textarea id="question" placeholder="예: 2024년 국가별 수출입 합계 Top 1 국가를 보여줘"></textarea>
+          <textarea id="question" placeholder="예: 2025년 국가별 수출입 합계 1위 국가를 보여줘"></textarea>
 
           <div class="row">
             <div class="col small">
-              <label>top_k</label>
+              <label>참고 데이터 수</label>
               <input id="top_k" type="number" value="5" min="1" max="20"/>
             </div>
 
             <div class="col small">
-              <label>row_limit</label>
+              <label>최대 조회 건수</label>
               <input id="row_limit" type="number" value="200" min="1" max="10000"/>
             </div>
 
             <div class="col small">
-              <label>dialect</label>
+              <label>데이터베이스</label>
               <select id="dialect">
                 <option value="oracle" selected>oracle</option>
                 <option value="postgres">postgres</option>
@@ -263,17 +387,18 @@
             </div>
           </div>
 
+          <div style="margin-top:14px; font-size:13px; font-weight:700; color:#334155;">조회 옵션</div>
+
           <div class="opts">
             <div class="opt">
               <input id="include_sources" type="checkbox" />
-              <label for="include_sources">sources 포함(토큰↑)</label>
+              <label for="include_sources">sources 포함</label>
             </div>
             <div class="opt">
               <input id="show_source_text" type="checkbox" />
               <label for="show_source_text">sources 원문 보기</label>
             </div>
             <div class="opt">
-              <!-- ✅ 초기 OFF -->
               <input id="include_total" type="checkbox" />
               <label for="include_total">총 건수(total_rows) 계산</label>
             </div>
@@ -281,37 +406,35 @@
 
           <div class="btns">
             <button class="primary" id="btn">SQL 생성 + 실행</button>
-            <button class="primary" id="copy" disabled>SQL 복사</button>
+            <button id="copy" disabled>SQL 복사</button>
           </div>
 
           <div class="footer-note">
-            * include_total은 기본 OFF입니다. 실행 결과가 row_limit로 “잘린 경우”에만 자동 ON 됩니다.
+            * include_total은 기본 OFF입니다. 실행 결과가 row_limit로 잘린 경우에만 자동 ON 됩니다.
           </div>
         </div>
       </div>
 
-      <!-- Right: Summary -->
       <div class="card">
         <div class="card-hd">
-          <h2>요약</h2>
-          <div class="badge">토큰 절약: 기본은 sources 숨김</div>
+          <h2>실행 요약</h2>
+          <span style="display:inline-block; width:72px; height:32px;"></span>
         </div>
         <div class="card-bd">
           <div id="summaryBar" class="summarybar" style="display:none;">
             <div class="mini" id="summaryText"></div>
           </div>
           <div class="muted" id="summaryEmpty" style="font-size:13px;">
-            아직 실행 결과가 없습니다. 질문을 입력하고 <b>SQL 생성 + 실행</b>을 눌러보세요.
+            아직 실행 결과가 없습니다. 질문을 입력하고 <b>SQL 생성 + 실행</b> 버튼을 눌러보세요.
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Output -->
-    <div class="card" style="margin-top:14px;">
+    <div class="card" style="margin-top:16px;">
       <div class="card-hd">
-        <h2>출력</h2>
-        <div class="badge">SQL + Result</div>
+        <h2>생성 결과</h2>
+        <div class="badge">SQL + 결과</div>
       </div>
       <div class="card-bd">
         <div class="section-title">
@@ -320,11 +443,14 @@
         </div>
         <pre id="outSql">(여기에 SQL이 표시됩니다)</pre>
 
-        <div style="height:14px;"></div>
+        <div style="height:16px;"></div>
 
         <div class="section-title">
           <span>실행 결과</span>
-          <span class="hint">표는 최대 row_limit까지 표시</span>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span class="hint">표는 최대 row_limit까지 표시</span>
+            <button id="downloadCsv" type="button">CSV 다운로드</button>
+          </div>
         </div>
         <div id="outResult" class="muted">(여기에 결과가 표시됩니다)</div>
       </div>
@@ -336,6 +462,7 @@
     const outResult = document.getElementById("outResult");
     const btn = document.getElementById("btn");
     const copyBtn = document.getElementById("copy");
+    const downloadBtn = document.getElementById("downloadCsv");
 
     const statusText = document.getElementById("status");
     const statusPill = document.getElementById("statusPill");
@@ -351,11 +478,15 @@
     let lastSql = "";
 
     function setStatus(state) {
-      statusText.textContent = state;
       statusPill.classList.remove("running","done","error");
       if (state === "running") statusPill.classList.add("running");
       if (state === "done") statusPill.classList.add("done");
       if (state === "error") statusPill.classList.add("error");
+
+      if (state === "idle") statusText.textContent = "대기";
+      else if (state === "running") statusText.textContent = "실행 중";
+      else if (state === "done") statusText.textContent = "완료";
+      else if (state === "error") statusText.textContent = "오류";
     }
 
     function escapeHtml(s) {
@@ -467,11 +598,6 @@
       return { ok: res.ok, data };
     }
 
-    // ✅ “잘렸을 때만 include_total 자동 ON” 구현:
-    // 1) 먼저 include_total = 사용자가 체크한 값으로 호출
-    // 2) 결과 rows가 row_limit과 같고, total_rows가 없으면(또는 제한 여부 판단이 필요하면)
-    //    -> include_total을 자동 ON + 체크박스 표시도 ON
-    //    -> include_total=true로 한 번 더 호출해서 total_rows 받아와서 표시
     btn.addEventListener("click", async () => {
       const question = document.getElementById("question").value.trim();
       const top_k = Number(document.getElementById("top_k").value || 5);
@@ -493,7 +619,6 @@
       copyBtn.disabled = true;
       lastSql = "";
 
-      // 1차 요청: include_total은 “사용자 선택” 그대로
       const basePayload = {
         question,
         top_k,
@@ -515,39 +640,26 @@
           return;
         }
 
-        // SQL 출력
         lastSql = data.sql || "";
         outSql.textContent = lastSql || "(sql이 비었습니다)";
         copyBtn.disabled = !lastSql;
 
-        // 결과 출력(1차)
         const rows1 = data.results || [];
         const total1 = data.total_rows;
-        const isLimited1 = !!data.is_limited;
-
-        // ✅ “잘린 경우” 판단
-        // - rows가 row_limit과 같고(= 잘렸을 가능성 높음)
-        // - 아직 total_rows가 없고(include_total=false였던 경우)
-        // - 그리고 서버가 is_limited를 안 주거나/true일 때
         const looksTruncated = (rows1.length >= row_limit);
         const needTotal = looksTruncated && !includeTotalEl.checked && (total1 === null || total1 === undefined);
 
-        // 일단 1차 화면 표시
         let html1 = renderResultsTable(rows1, row_limit, total1);
         if (include_sources && data.sources) html1 += renderSources(data.sources, show_source_text);
         outResult.innerHTML = html1;
         showSummary(buildSummaryLine(data, rows1.length, row_limit));
 
-        // 2차 요청: “잘린 경우”에만 include_total 자동 ON + 재호출
         if (needTotal) {
-          includeTotalEl.checked = true; // ✅ 체크박스 UI도 자동 ON
-
-          // total_rows만 필요하니 sources는 그대로 유지 (사용자 선택 유지)
+          includeTotalEl.checked = true;
           const payload2 = { ...basePayload, include_total: true };
-
           const r2 = await callApi(payload2);
           if (r2.ok) {
-            data = r2.data; // total_rows 포함된 응답으로 교체
+            data = r2.data;
             const rows2 = data.results || [];
             const total2 = data.total_rows;
 
@@ -578,9 +690,66 @@
       }
     });
 
-    // 초기 상태
+    downloadBtn.addEventListener("click", async () => {
+      const question = document.getElementById("question").value.trim();
+      if (!question) {
+        alert("먼저 질문을 입력하고 실행해 주세요.");
+        return;
+      }
+
+      const top_k = Number(document.getElementById("top_k").value || 5);
+      const row_limit = Number(document.getElementById("row_limit").value || 200);
+      const dialect = document.getElementById("dialect").value || "oracle";
+
+      const payload = {
+        question,
+        top_k,
+        row_limit,
+        dry_run: false,
+        dialect,
+        include_sources: false,
+        include_total: false
+      };
+
+      try {
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = "CSV 생성 중...";
+
+        const res = await fetch("/api/v1/sql/export/csv", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || "CSV 다운로드 요청 실패");
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+
+        const disposition = res.headers.get("Content-Disposition") || "";
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        a.download = match ? match[1] : "sql_result.csv";
+
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (e) {
+        alert("CSV 다운로드 실패: " + String(e));
+      } finally {
+        downloadBtn.disabled = false;
+        downloadBtn.textContent = "CSV 다운로드";
+      }
+    });
+
     setStatus("idle");
-    includeTotalEl.checked = false; // ✅ 초기 OFF 강제
+    includeTotalEl.checked = false;
   </script>
 </body>
 </html>

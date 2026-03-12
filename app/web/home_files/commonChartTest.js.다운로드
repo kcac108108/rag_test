@@ -1,0 +1,685 @@
+/**
+ * 
+ * chart를 위한 공통 함수
+ * 
+ */
+
+var chart = null; 
+
+var chart_arr = [];
+//공통차트
+/*
+function showSeries(e) {
+    //this.graph.attr("stroke", (e.checked ? this.color : '#ccc'));
+	
+	//var visible = true
+	//!visible
+	//console.log(eval(e));
+	if(e.checked ==  true || e.checked==undefined || e.checked==null){//체크되어있다면
+			this.setVisible(true,true);
+    }else{
+    	this.setVisible(false,true);
+    }
+}
+*/
+
+function reverseData(input_data, key, type){//input_data : JSON 배열. key 이용해서 역순 정렬.
+	 var temp_data = [];//복사될 배열
+	 var data = {}; 
+	 if(input_data !=undefined){//배열 복사
+		 for(var i=0;i<input_data.length;i++){
+			 data = input_data[i];
+			 temp_data.push(JSON.parse(JSON.stringify(data)));//temp_data_로 복사
+		 }
+		if(type == "DATE"){	 
+			temp_data.sort(function(a,b){//temp_data_ 역순정렬
+				var date_a = (a[key]).replace(/[^0-9]/g,"");
+				var date_b = (b[key]).replace(/[^0-9]/g,"");
+				return date_a - date_b;
+			});
+		}else{
+			;
+		}
+	 }
+	// console.log(temp_data);
+	return temp_data;
+}
+//var $container
+
+function drawChart(RENDERINGTO,cateories,series,title,json){
+	
+	//남아있으면 지우고
+		if(chart != null && chart.chart != undefined )
+			if(chart.chart.renderTo== RENDERINGTO ){
+				//chart.destroy();
+				chart.redraw();
+			}
+		Highcharts.setOptions({
+			 lang : {
+	   		 //numericSymbols : [ ' 천', ' 백만', ' 억', ' 천억', ' 백조']
+	   		 //numericSymbols : [ '십','백' ,'천','만','십만','백만','천만','억','십억','천억','조'],
+	   	 	 //numericSymbolsMagnitude : 10
+				 numericSymbols : null,
+				 thousandsSep : ',',
+				 dcimalPoint:'.'
+			 },
+			 colors:['#FCBE32','#004E66','#ABD0CE','#B91A4D','#6A8518','#FF0000'],
+			 credits : {
+					enabled : false
+				}
+//			,chart : {
+//	        	events: {
+//	                beforePrint: function () {
+
+//	                },
+//	                afterPrint: function () {
+//					}
+
+//			}
+		});
+	
+		chart = new Highcharts.Chart({
+			chart : {
+				//spacingBottom:15,
+				spacingTop:40,
+				spacingLeft:0,
+				spacingRight:20,
+				//spacingRight:10,
+				//marginLeft:60,
+				marginBottom : 50,
+				//spacingBottom:-40,
+		        borderColor:'#ccc',
+		        backgroundColor:'#fff',
+		        plotBackgroundColor:'#fff',
+				renderTo : RENDERINGTO,
+				plotBackgroundImage : '/img/TRASS_background.png',
+				defaultSeriesType: 'column',
+				//scrollablePlotArea : {minWidth:1500},
+				//zoomType : 'x'//zoom 여부. x, y, xy 가능
+
+	        	events: {
+	                beforePrint: function () {
+	                	$('.highcharts-scrollbar').hide();
+	        			$('.highcharts-exporting-group').hide();
+	        			$('.highcharts-label.highcharts-tooltip').hide();
+	        			
+	        			chart.oldhasUserSize = chart.hasUserSize;
+	        		    chart.resetParams = [chart.chartWidth, chart.chartHeight, false];
+	        		    chart.setSize(720, 500, false);
+	        		    alert('before');
+	        		    /*for(var i=0;i<chart_arr.length;i++){
+	        				var temp =chart_arr[i]; 
+		        			temp.oldhasUserSize = temp.hasUserSize;
+		        			temp.resetParams = [temp.chartWidth, temp.chartHeight, false];
+		        			temp.setSize(750, 500, false);
+	        			}*/
+	                },
+	                afterPrint: function () {
+	                	
+	                	$('.highcharts-scrollbar').show();
+	                	$('.highcharts-exporting-group').show();
+	                	$('.highcharts-label.highcharts-tooltip').show();
+	                	/*chart.setSize.apply(chart, chart.resetParams);
+	                	chart.hasUserSize = chart.oldhasUserSize;*/
+	        			for(var i=0;i<chart_arr.length;i++){
+	        				chart_arr[i].setSize.apply(chart_arr[i], chart_arr[i].resetParams);
+	        				chart_arr[i].hasUserSize = chart_arr[i].oldhasUserSize;
+	        			}
+	        			
+	                    
+	                }
+	            }
+			},
+			title : {
+				style : {
+					"display" : "none"
+				}
+				/*useHTML : true,
+				text : "<table><tr><td colspan = '2'>한국무역통계진흥원 BandTRASS</td></tr>" +
+					   	 "<tr><td>TEST2</td></tr>" +
+				       "</table>"
+				*/	
+					
+			},
+			
+			xAxis : {
+				title : null,
+				categories : cateories,
+				max : 13,
+				min : 0,
+				labels : { // stock
+				//	y : 13
+				// stock 하단에 나오는 x값의 마진
+				}
+			// stock
+			},
+			
+			scrollbar : { // stock
+				enabled : true
+			},
+			
+			yAxis : {
+				title : {
+					text : '',
+					align:'high',
+					rotation:0,
+					y:10,
+					style : {
+						'font-weight' : 'bold'
+					}
+				},
+				plotLines : [ {
+					value : 1,
+					width : 1,
+					color : '#808080',
+//					series:{
+//						stickyTracking : false
+//					}
+				} ],
+				tickAmount : 8,
+				labels : {
+					useHTML : true,
+					/*formatter: function(){
+						return 'rr';
+					}*/
+				}
+			},
+			
+			plotOptions : {
+				series : {
+					selected : true,
+					marker : {
+						enabled : true
+					},
+					dataLabels:{//여기에 스타일 시트도 먹일 수 있나봐
+						enabled : true,
+						shape : 'callout',
+//						borderRadius:-3,
+						padding : 0,
+						y:-10,
+						style : {fontWeight:'lighter',fontSize:'9px',color:'grey'},
+					},
+					crop : false,
+//					showCheckbox : function(e){
+//						console.log(e);
+//						//return true;
+//					},
+					events : {
+						legendItemClick: function(e){
+							//console.log(this);
+							//$('#'+this.id +'').prop('checked',false);
+							//$("input[type = checkbox]").prop('checked',true);
+							//e.preventDefault();
+							return false;
+						},
+						checkboxClick: function (event) {
+		                    if(event.checked)
+		                    	this.setVisible(true,true);
+		                    else
+		                    	this.setVisible(false,true);
+		                }
+					},
+					showCheckbox : true
+				}
+			},
+			tooltip : {
+//				formatter : function() {
+//					return '<b>' + this.series.name + '</b><br/>' + this.y;
+//						+ myformatter(this.y, '', '');
+//				},
+				backgroundColor : "rgba(255,255,255,1)",
+				shared : true,
+				useHTML : true,
+				headerFormat: '<strong>{point.key}</strong><table>',
+		        pointFormat: '<tr><td style="color: {series.color}">{series.name}: </td>' +
+		            '<td style="text-align: right"><b>{point.y}</b></td></tr>',
+		        footerFormat: '</table>',
+		        snap : 5
+		        //valueDecimals: 2
+		        //valueSuffix: '$'
+
+			},
+			legend : {
+				align : 'center',
+				itemStyle :{
+					'cursor' : 'default'
+				}
+				//showCheckbox : true
+			},
+			series : series,
+			exporting : {enabled:false}
+			/*exporting : {//THE00203에 sendPrintContent(); 예제로 구현되어 있음..
+				allowHTML : true,
+				/*formAttributes:{
+					
+					target:'_blank'
+				}
+				buttons : {
+							contextButton:{
+				
+											menuItems:[{
+																text : "PrintChart",
+																onclick : function(){
+																	
+																	/*1안
+																	this.userOptions.chart.events.beforePrint();//이건 사용자정의 옵션에서...공통 옵션 말고ㅇㅇㅇ
+																	sendPrintContent();
+
+																	this.userOptions.chart.events.afterPrint();
+																	
+																	
+																	
+																	/*2안
+																	//printChart();
+																	
+																}
+											
+													},]
+					
+					}
+				}
+			}
+	*/
+		});
+
+		//로고
+		//chart.renderer.image('/img/header_logo2.png',-10,0,132,34).add();
+		//추가조건이 발생 할 경우, jsp에서 json으로 받아서 재세팅 해줄것. 
+		if(json !=undefined)
+			setCondition(json);
+		//return chart;
+		var tmp = $.extend({},chart)
+		chart_arr.push(tmp);
+		return chart;
+		
+}
+
+//호출페이지에서는 json을 완벽하게 다 만들고, js에서는 파싱만 하는 상태
+function setCondition(json){
+	//var parsed = JSON.parse(json);
+	for(key in json){
+		var obj =  "{"+key+":"+JSON.stringify(json[key]) + "}";
+//		console.log(obj);
+//		console.log(typeof(obj));
+//		console.log(JSON.stringify(obj));
+//		console.log(typeof(JSON.stringify(obj)));
+//		console.log(eval("("+obj+")"));
+//		console.log(typeof(eval("("+obj+")")));
+		
+		chart.update(
+				eval("("+obj+")")
+		);
+	}
+}
+function drawChart_index(RENDERINGTO,cateories,series,json,y_text){
+	
+		Highcharts.setOptions({
+			 lang : {
+				 thousandsSep : ',',
+				 dcimalPoint:'.'
+			 },
+			 colors:['#FCBE32','#004E66','#ABD0CE','#B91A4D','#6A8518','#FF0000'],
+			 credits : {
+					enabled : false
+				}
+		});
+	
+		chart = new Highcharts.Chart({
+			chart : {
+
+				
+				//spacingBottom:-20,
+				//spacingTop:40,
+				//spacingLeft:0,
+				//spacingRight:20,
+				//spacingRight:10,
+				//marginLeft:60,
+				//marginBottom : 0,
+				//spacingBottom:-3,
+				
+				
+				
+		        borderColor:'#ccc',
+		        backgroundColor:'#fff',
+		        //plotBackgroundColor:'#fff',
+				plotBorderWidth:1,
+		        renderTo : RENDERINGTO,
+				//plotBackgroundImage : '/img/TRASS_background.png',
+				defaultSeriesType: 'line',
+			},
+			xAxis : {
+				categories : cateories,
+				labels : { // stock
+				//	y : 0
+				// stock 하단에 나오는 x값의 마진
+				},
+				tickInterval : 11
+			},
+			scrollbar : {enabled : false},
+            title:null,
+			yAxis : {
+				//tickAmount : 5,
+				title : null,
+				plotLines : [ {
+					value : 1,
+					width : 1,
+					color : '#808080',
+					/*series:{
+						stickyTracking : false
+					}*/
+				} ],
+				
+				labels : {
+					formatter:function(){
+						var unit='<span style="font-weight:bold ; color:\'#FCBE32\'">'+y_text+'<span>';
+						if(this.isLast){
+							//return unit;
+							return this.value;
+						}else{
+							return this.value;
+						}
+					
+					}
+					
+				}
+			},
+			plotOptions : {
+				series : {
+					selected : false,
+					marker : {
+						enabled : false
+					},
+					dataLabels:{
+						enabled : true,
+						shape : 'callout',
+						padding : 0,
+						y:-10,
+						style : {fontWeight:'lighter',fontSize:'9px',color:'grey'},
+					},
+					crop : false,
+				}
+			},
+			tooltip : {
+				backgroundColor : "rgba(255,255,255,1)",
+				shared : true,
+				useHTML : true,
+				headerFormat: '<strong>{point.key}</strong><table>',
+		        pointFormat: '<tr><td style="color: {series.color}">{series.name}: </td>' +
+		            '<td style="text-align: right"><b>{point.y}</b></td></tr>',
+		        footerFormat: '</table>',
+		        snap : 5
+			},
+			legend : {enabled : false},
+			series : series
+		});
+		if(json !=undefined)
+			setCondition(json);
+
+}
+/* 정 서 빈
+ * 2019.08.01 지수통계그래프 추가
+ * RENDERINGTO : 랜더링 위치
+ * json : 그래프별 세부 조건
+ * data에 URL 포함시 이동 
+ * */
+function drawstockChart(RENDERINGTO,series,json){
+	//남아있으면 지우고
+		if(chart != null && chart.chart != undefined )
+			if(chart.chart.renderTo== RENDERINGTO ){
+				//chart.destroy();
+				chart.redraw();
+			}
+		Highcharts.setOptions({
+			 lang : {
+				 numericSymbols : null,
+				 thousandsSep : ',',
+				 dcimalPoint:'.'
+			 },
+			 colors:['#B91A4D','#6A8518','#FCBE32','#004E66','#ABD0CE','#FF0000'],
+			 credits : {
+					enabled : false
+				}//,
+			 //lang:{rangeSelectorZoom : ''
+			 //	 }
+		});
+	
+//		chart = new Highcharts.Chart({
+		chart = new Highcharts.stockChart({
+			chart : {
+
+		        borderColor:'#ccc',
+		        backgroundColor:'#fff',
+		        plotBackgroundColor:'#fff',
+				renderTo : RENDERINGTO,
+				defaultSeriesType: 'line',		
+			},
+			title : {
+				style : {
+					"display" : "none"
+				}
+			},
+			
+			scrollbar : { // stock
+				enabled : false 
+			},
+			xAxis : {
+				type:'datetime',
+				dateTimeLabelFormats:{
+					month:'%Y년 %m월',//%b 하면 JANUARY 이런식으로 표기
+					year:'%Y'
+				}/*,
+				unit:[
+				      ['month',[1,3,6]],
+				      ['year',[1,3,6]],
+				      ]*/
+			},
+			yAxis : {
+				title : {
+					text : '',
+					align:'high',
+					rotation:0,
+					y:10,
+					style : {
+						'font-weight' : 'bold'
+					}
+				},
+				plotLines : [ {
+					value : 1,
+					width : 1,
+					color : '#808080',
+//					series:{
+//						stickyTracking : false
+//					}
+				} ],
+				tickAmount : 8,
+				labels : {
+					useHTML : true,
+				}
+			},
+			
+			plotOptions : {
+				series : {
+					showInNavigator : true,
+					selected : true,
+					marker : {
+						enabled : true,
+						radius : 2
+					},
+					dataLabels:{//여기에 스타일 시트도 먹일 수 있나봐
+						enabled : true,
+						shape : 'callout',
+//						borderRadius:-3, 
+						padding : 0,
+						y:-10,
+						style : {fontWeight:'lighter',fontSize:'9px',color:'grey'},
+					},
+					crop : false,
+					events : {
+						click : function(e){
+							//console.log(eval(event));
+							//console.log(eval(e));
+							//console.log(event.point.index);
+							//console.log(chartList[event.point.index]);
+							//console.log(eval(e));
+							if(!!e.point.url)
+								location.href = e.point.url;
+						}
+					},
+				}
+			},
+			tooltip : {
+				backgroundColor : "rgba(255,255,255,1)",
+				shared : true,
+				useHTML : true,
+				headerFormat: '<strong>{point.key}</strong><table>',
+		        pointFormat: '<tr><td style="color: {series.color}">{series.name}: </td>' +
+		            '<td style="text-align: right"><b>{point.y}</b></td></tr>',
+		        footerFormat: '</table>',
+		        snap : 5
+
+			},
+			legend : {
+				enabled:true,
+				//layout:'vertical',
+			},
+			navigator:{
+				enabled:true//스톡차트처럼 레인지셀렉터랑 네비 쓸 수 있음
+			},
+			rangeSelector : {
+				labelStyle:{
+					display:'none'
+				},
+				selected:2,
+				allButtonsEnabled:true,
+				inputEnabled: false,
+				buttons : [ {
+								type:'month',
+								text:'6달',
+								count:6
+							},
+							
+							{
+								type:'year',
+								text:'1년',
+								count:1
+							},
+							{
+								type:'year',
+								text:'3년',
+								count:3
+							},
+							{
+								type:'all',
+								text:'전체'
+							}]
+			},
+			series : series
+	
+		});
+
+		//로고
+		//chart.renderer.image('/img/header_logo2.png',-10,0,132,34).add();
+		//추가조건이 발생 할 경우, jsp에서 json으로 받아서 재세팅 해줄것. 
+		if(json !=undefined)
+			setCondition(json);
+		//return chart;
+}
+
+
+
+
+/* 정 서 빈
+ * 2019.09.04 차트 프린트 커스터마이징 추가
+ * title : 출력물 상단 제목
+ * content : 출력물 내용
+ * */
+function ChartToPrint(title, content){
+	
+    	var pop_width = '948'//'948'; 
+    	var pop_height = '698'; //$("#popup_all").height();
+		var pop_con_height = (Number(pop_height) - 12) +"px";
+	
+		var left = (parent.screen.width-pop_width)/2; //- ($(window).scrollLeft() + ($(window).width() - pop_width) / 2);
+		var top = (parent.screen.height-pop_height)/2;//($(window).scrollTop() + ($(window).height() - pop_height) / 2);
+		 var status = "width="+pop_width+",height="+pop_height+",left="+left+",top="+top+",scrollbars=yes";
+			new_window = window.open("", "_blank", status);
+			
+			new_window.document.write("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">");
+			new_window.document.write("<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"ko\" xml:lang=\"ko\"> ");
+			new_window.document.write("<head>");
+			new_window.document.write("	<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />");
+			new_window.document.write("	<meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\" />");
+			new_window.document.write("	<title>");
+			new_window.document.write(title);
+			new_window.document.write("</title>");
+			new_window.document.write("	<script src=\"/js/commonChartTest.js\">");
+			new_window.document.write("	<script type=\"text/javascript\" language=\"javascript\">");
+			new_window.document.write("		var beforePrint = function() {");
+			// 프린트 이전 호출
+			new_window.document.write("		};");
+			new_window.document.write("		var afterPrint = function() {");
+			// 프린트 이후 호출			
+			new_window.document.write("		};");
+			new_window.document.write("		if (window.matchMedia) {");
+			new_window.document.write("			var mediaQueryList = window.matchMedia('print');");
+			new_window.document.write("			mediaQueryList.addListener(function(mql) {");
+			new_window.document.write("				if (mql.matches) {");
+			new_window.document.write("					beforePrint();");
+			new_window.document.write("				} else {");
+			new_window.document.write("					afterPrint();");
+			new_window.document.write("				}");
+			new_window.document.write("			});");
+			new_window.document.write("		}");
+			new_window.document.write("		window.onbeforeprint = beforePrint;");
+			new_window.document.write("		window.onafterprint = afterPrint;");
+			new_window.document.write("	<\/script>");
+			
+			new_window.document.write("	<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/bootstrap.min.css\"/>");
+			new_window.document.write("	<link rel=\"stylesheet\" type=\"text/css\" href=\"/font-awesome/css/font-awesome.css\"/>");
+			new_window.document.write("	<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/animate.css\"/>");
+			new_window.document.write("	<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/plugins/jqGrid/ui.jqgrid.css\"/>");
+			new_window.document.write("	<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/plugins/jQueryUI/jquery-ui-1.10.4.custom.min.css\"/>");
+			new_window.document.write("	<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/statistics_style.css\"/>");
+			new_window.document.write("	<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/plugins/multiselect/bootstrap-multiselect.css\"/>");
+			
+			
+			new_window.document.write("<\/head>");
+			new_window.document.write("<body style=\"background-color:#ffffff;margin : 15px 0px 0px 30px;\">");
+			new_window.document.write("<div>");
+			new_window.document.write("	<div style=\"background-color:#ffffff;\">");
+			new_window.document.write("		<div class=\"pop_body\">");
+			new_window.document.write("			<div style=\"float:left;\">");
+			new_window.document.write("				<img alt=\"BANDTRASS 수출입통계정보서비스 - 한국무역통계진흥원\" src=\"/img/header_logo.png\">");
+			new_window.document.write("			<\/div>");
+			new_window.document.write("			<div style=\"text-align : center;width:100%\">");
+			new_window.document.write("				<h1 style=\"margin: 10px;\">");
+			new_window.document.write(title);
+			new_window.document.write("				<\/h1>");
+			new_window.document.write("			<\/div>");
+			new_window.document.write("			<br\/><br\/>");
+			new_window.document.write("			<div >");
+			new_window.document.write(				content );
+			new_window.document.write("			<\/div>");
+			
+			new_window.document.write("		<\/div>");
+			new_window.document.write("	<\/div>");
+			new_window.document.write("<\/div>");
+			
+			new_window.document.write("	<script src=\"/js/jquery-1.9.1.js\">");
+
+			new_window.document.write("<\/script>");
+			new_window.document.write("<script>");
+			new_window.document.write(" window.print();");
+			//new_window.document.write(" alert('인쇄');");
+			
+			//new_window.document.write(" function closePOP(){self.close(); setTimeout('closePOP()',1000)};");
+			//new_window.document.write(" closePOP();");
+			new_window.document.write("<\/script>");
+			
+			new_window.document.write("<\/body>");
+			new_window.document.write("<\/html>");
+			// 반드시 document.close() 해야함.
+			new_window.document.close();
+			//new_window.close();
+    	
+     }

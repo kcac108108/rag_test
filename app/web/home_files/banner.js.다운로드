@@ -1,0 +1,32 @@
+﻿﻿function bannerClick(code, url, target, option){
+var params = "command=Banner&CODE="+code;  
+	
+	$.ajax({
+		url:"/index.do",
+		type: 'POST',
+		data:params,
+		dataType: 'JSON',
+		cache:false,
+		async:false,
+		success: function (result) {
+			var jsonResult = result;
+    		//var Data = JSON.parse(jsonResult.Data);
+			var cnt = parseInt(jsonResult.result);
+    		if(cnt == 1){
+    			if(target == "_blank"){
+    				window.open(url,'bandtrass_banner'+code,option);
+    			}else if(target != "_blank"){
+    				location.href = target;
+    			}
+    		}
+		},
+		error:function(xhr,status,errorThrown) {
+			
+		},
+		complete : function(xhr , status){
+			
+		}
+	});
+
+}
+      

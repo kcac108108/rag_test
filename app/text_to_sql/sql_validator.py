@@ -1,11 +1,14 @@
 import re
 from typing import List, Tuple
+
 from app.db.guards.policies import blocked_keywords
+
 
 def _strip_comments(sql: str) -> str:
     sql = re.sub(r"--.*?$", "", sql, flags=re.MULTILINE)
     sql = re.sub(r"/\*.*?\*/", "", sql, flags=re.DOTALL)
     return sql
+
 
 def validate_sql(sql: str) -> Tuple[bool, List[str]]:
     if not sql or not sql.strip():

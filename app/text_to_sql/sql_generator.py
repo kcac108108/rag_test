@@ -1,5 +1,5 @@
 from app.core.config import settings
-from app.text_to_sql.prompts import sql_system_prompt, build_user_prompt
+from app.text_to_sql.prompts import build_user_prompt, sql_system_prompt
 
 
 def generate_sql(question: str, context: str, dialect: str, row_limit: int) -> str:

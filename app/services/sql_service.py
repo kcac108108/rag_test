@@ -7,11 +7,11 @@ from typing import Optional
 from app.core.config import settings
 from app.schemas.sql import SQLQueryRequest, SQLQueryResponse
 from app.text_to_sql.context_builder import build_context
-from app.text_to_sql.sql_generator import generate_sql
-from app.text_to_sql.sql_validator import validate_sql
-from app.text_to_sql.executor import execute, count
-from app.text_to_sql.sql_rewriter import rewrite_sql
+from app.text_to_sql.executor import count, execute
 from app.text_to_sql.result_formatter import format_rows
+from app.text_to_sql.sql_generator import generate_sql
+from app.text_to_sql.sql_rewriter import rewrite_sql
+from app.text_to_sql.sql_validator import validate_sql
 
 
 # ----------------------------
@@ -22,9 +22,74 @@ _RANK_KOREAN_RE = re.compile(r"(한|두|세|네|다섯|여섯|일곱|여덟|아�
 _TOPN_RE = re.compile(r"(상위|TOP)\s*(\d+)", re.IGNORECASE)
 
 _KOREAN_ORDINAL_MAP = {
-    "한": 1, "두": 2, "세": 3, "네": 4, "다섯": 5,
-    "여섯": 6, "일곱": 7, "여덟": 8, "아홉": 9, "열": 10,
+    "한": 1,
+    "두": 2,
+    "세": 3,
+    "네": 4,
+    "다섯": 5,
+    "여섯": 6,
+    "일곱": 7,
+    "여덟": 8,
+    "아홉": 9,
+    "열": 10,
 }
+
+
+# ----------------------------
+# DDL / DML intent guard
+# ----------------------------
+_WRITE_INTENT_PATTERNS = [
+    r"\bINSERT\b",
+    r"\bUPDATE\b",
+    r"\bDELETE\b",
+    r"\bMERGE\b",
+    r"\bUPSERT\b",
+    r"\bCREATE\b",
+    r"\bALTER\b",
+    r"\bDROP\b",
+    r"\bTRUNCATE\b",
+    r"\bRENAME\b",
+    r"\bGRANT\b",
+    r"\bREVOKE\b",
+    r"업데이트\s*해",
+    r"수정\s*해",
+    r"삭제\s*해",
+    r"추가\s*해",
+    r"생성\s*해",
+    r"변경\s*해",
+    r"등록\s*해",
+    r"반영\s*해",
+    r"만들어\s*줘",
+    r"바꿔\s*줘",
+    r"지워\s*줘",
+    r"테이블.*생성",
+    r"테이블.*만들",
+    r"컬럼.*추가",
+    r"인덱스.*생성",
+    r"제약조건.*추가",
+    r"데이터.*삭제",
+    r"데이터.*수정",
+    r"데이터.*변경",
+]
+
+
+def _is_write_intent(question: str) -> bool:
+    q = (question or "").strip()
+    if not q:
+        return False
+
+    for pattern in _WRITE_INTENT_PATTERNS:
+        if re.search(pattern, q, flags=re.IGNORECASE):
+            return True
+    return False
+
+
+def _read_only_rejection() -> str:
+    return (
+        "이 서비스는 조회(SELECT) 전용입니다. "
+        "CREATE / UPDATE / DELETE / ALTER / DROP / INSERT 요청은 지원하지 않습니다. "
+        "조회 질문으로 다시 입력해 주세요."
+    )
 
 
 def _has_window_function(sql: str) -> bool:
@@ -41,14 +106,51 @@ def _extract_rank_n(question: str) -> Optional[int]:
     m = _RANK_DIGIT_RE.search(q)
     if m:
         return int(m.group(1))
+
     m = _RANK_KOREAN_RE.search(q)
     if m:
         return _KOREAN_ORDINAL_MAP.get(m.group(1))
+
     return None
 
 
 def _looks_like_topn_question(question: str) -> bool:
     return bool(_TOPN_RE.search(question or ""))
+
+
+def _looks_like_growth_rate_question(question: str) -> bool:
+    q = question or ""
+    uq = q.upper()
+
+    korean_keywords = [
+        "증감률",
+        "증가율",
+        "감소율",
+        "전년대비",
+        "전년 동기 대비",
+        "전년동기대비",
+    ]
+    english_keywords = [
+        "YOY",
+        "GROWTH RATE",
+        "CHANGE RATE",
+    ]
+
+    return any(k in q for k in korean_keywords) or any(k in uq for k in english_keywords)
+
+
+def _looks_like_inline_view_question(question: str) -> bool:
+    q = question or ""
+    hints = [
+        "월별 평균",
+        "평균수출금액",
+        "평균수입금액",
+        "월별 평균수출금액",
+        "월별 평균수입금액",
+        "월별",
+        "평균",
+    ]
+    return any(h in q for h in hints)
 
 
 def _strip_sql_fences(sql: str) -> str:
@@ -85,23 +187,29 @@ def _sanitize_sql(sql: str) -> str:
 def _upper_sql(sql: str) -> str:
     if not sql:
         return sql
+
     out = []
     in_str = False
+
     for ch in sql:
         if ch == "'":
             in_str = not in_str
             out.append(ch)
         else:
             out.append(ch if in_str else ch.upper())
+
     return "".join(out)
 
 
 def _ensure_limit(sql: str, row_limit: int, dialect: str) -> str:
     s = sql.rstrip(";").strip()
+
     if dialect.lower() == "oracle":
         return s + ";"
+
     if "LIMIT" in s.upper():
         return s + ";"
+
     return f"{s}\nLIMIT {row_limit};"
 
 
@@ -110,9 +218,32 @@ def _build_summary(returned: int, row_limit: int, total: Optional[int]) -> tuple
         if returned >= row_limit and total > row_limit:
             return f"총 {total}건 중 {returned}건 표시", True
         return f"총 {total}건 표시", False
+
     if returned >= row_limit:
         return f"{returned}건 표시 (제한됨)", True
+
     return f"{returned}건 표시", False
+
+
+def _enforce_growth_rate_rule_if_needed(*, question, sql, context, dialect, row_limit):
+    if not _looks_like_growth_rate_question(question):
+        return sql
+
+    policy = (
+        "ORACLE GROWTH RATE RULE:\n"
+        "- If the user asks for 증감률 / 증가율 / 감소율 / 전년대비 / 전년동기대비, you MUST protect division by zero.\n"
+        "- Use: ((CURRENT_VALUE - PREVIOUS_VALUE) / NULLIF(PREVIOUS_VALUE, 0)) * 100.\n"
+        "- If the user asks for 순위 / N위 / 상위 based on the growth rate, exclude rows where PREVIOUS_VALUE is NULL or 0 before ranking, OR ensure those rows are ranked last.\n"
+        "- In Oracle, when ordering or ranking by a nullable growth-rate expression, use DESC NULLS LAST.\n"
+        "- Prefer CTE pattern: BASE -> CALC -> RANKED.\n"
+        "- Do NOT use SELECT *.\n"
+        "- Do NOT duplicate aliases.\n"
+        "- All output columns MUST have Korean aliases suitable for table headers.\n"
+        "- Output SQL only.\n"
+    )
+
+    rewritten = rewrite_sql(question, sql, policy, context, dialect, row_limit)
+    return _sanitize_sql(rewritten)
 
 
 def _enforce_rank_only_if_needed(*, question, sql, context, dialect, row_limit):
@@ -128,14 +259,51 @@ def _enforce_rank_only_if_needed(*, question, sql, context, dialect, row_limit):
         "- Do NOT duplicate aliases.\n"
         "- All output columns MUST have Korean aliases suitable for table headers (e.g., CNTY_NM AS 국가명).\n"
         "- Use double quotes for Korean aliases in Oracle if needed (e.g., CNTY_NM AS \"국가명\").\n"
+        "- If ranking by 증감률 or 증가율 or 감소율, use zero-safe denominator with NULLIF and rank with DESC NULLS LAST.\n"
+        "- If ranking by 증감률 or 증가율 or 감소율, prefer excluding rows where the previous/base value is NULL or 0.\n"
         "- Output SQL only.\n"
     )
+
+    rewritten = rewrite_sql(question, sql, policy, context, dialect, row_limit)
+    return _sanitize_sql(rewritten)
+
+
+def _enforce_alias_scope_rule_if_needed(*, question, sql, context, dialect, row_limit):
+    if not _looks_like_inline_view_question(question):
+        return sql
+
+    policy = (
+        "ORACLE SUBQUERY ALIAS SCOPE RULE:\n"
+        "- If you use an inline view or subquery in FROM ( ... ), you MUST assign it an alias, e.g. FROM ( ... ) A.\n"
+        "- Table aliases defined inside the subquery, such as T, M, H, are NOT visible in the outer query.\n"
+        "- Therefore, in the outer SELECT / GROUP BY / ORDER BY, NEVER reference T.COL, M.COL, H.COL from the inner query.\n"
+        "- In the outer query, use ONLY the inline-view alias, e.g. A.ACPT_YYMM, A.MONTH_SUM.\n"
+        "- For monthly-average pattern, prefer:\n"
+        "  SELECT SUBSTR(A.ACPT_YYMM, 5, 2) AS \"월\", AVG(A.MONTH_SUM) AS \"평균금액\"\n"
+        "  FROM ( ... ) A\n"
+        "  GROUP BY SUBSTR(A.ACPT_YYMM, 5, 2)\n"
+        "  ORDER BY \"월\".\n"
+        "- Do NOT use SELECT *.\n"
+        "- Do NOT duplicate aliases.\n"
+        "- Output SQL only.\n"
+    )
+
     rewritten = rewrite_sql(question, sql, policy, context, dialect, row_limit)
     return _sanitize_sql(rewritten)
 
 
 class SQLService:
     def handle(self, req: SQLQueryRequest) -> SQLQueryResponse:
+        if _is_write_intent(req.question):
+            return SQLQueryResponse(
+                sql="",
+                summary=_read_only_rejection(),
+                results=[],
+                sources=None,
+                total_rows=None,
+                is_limited=False,
+            )
+
         dialect = req.dialect or settings.db_dialect
         row_limit = min(req.row_limit, settings.max_rows)
 
@@ -147,6 +315,22 @@ class SQLService:
 
         sql = generate_sql(req.question, context, dialect, row_limit)
         sql = _sanitize_sql(sql)
+
+        sql = _enforce_alias_scope_rule_if_needed(
+            question=req.question,
+            sql=sql,
+            context=context,
+            dialect=dialect,
+            row_limit=row_limit,
+        )
+
+        sql = _enforce_growth_rate_rule_if_needed(
+            question=req.question,
+            sql=sql,
+            context=context,
+            dialect=dialect,
+            row_limit=row_limit,
+        )
 
         sql = _enforce_rank_only_if_needed(
             question=req.question,
@@ -161,13 +345,26 @@ class SQLService:
 
         ok, warnings = validate_sql(sql)
         if not ok:
-            return SQLQueryResponse(sql=sql, summary="SQL rejected", results=[], sources=resp_sources)
+            return SQLQueryResponse(
+                sql=sql,
+                summary="SQL rejected",
+                results=[],
+                sources=resp_sources,
+                total_rows=None,
+                is_limited=False,
+            )
 
         if req.dry_run:
-            return SQLQueryResponse(sql=sql, summary="Dry run", results=[], sources=None)
+            return SQLQueryResponse(
+                sql=sql,
+                summary="Dry run",
+                results=[],
+                sources=None,
+                total_rows=None,
+                is_limited=False,
+            )
 
         try:
-            # ✅ 핵심 수정: WINDOW FUNCTION 있으면 COUNT 안 함
             total = None
             if include_total and not _has_window_function(sql):
                 total = count(sql, dialect=dialect)
@@ -193,4 +390,6 @@ class SQLService:
                 summary=f"Execution failed: {e}",
                 results=[],
                 sources=resp_sources,
+                total_rows=None,
+                is_limited=False,
             )

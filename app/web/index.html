@@ -282,6 +282,27 @@
       min-height: 120px;
     }
 
+    .result-table-wrap{
+      width:100%;
+      overflow-x:auto;
+      overflow-y:hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:#fff;
+      margin-top:10px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .result-table-wrap table{
+      width:max-content;
+      min-width:100%;
+      border-collapse: collapse;
+      margin-top:0;
+      border:none;
+      border-radius:0;
+      background:#fff;
+    }
+
     table{
       width:100%;
       border-collapse: collapse;
@@ -298,6 +319,7 @@
       text-align:left;
       font-size: 13px;
       color:#1f2937;
+      white-space: nowrap;
     }
     th{
       position:sticky;
@@ -557,6 +579,7 @@
       }
 
       let html = header;
+      html += `<div class="result-table-wrap">`;
       html += "<table><thead><tr>";
       html += cols.map(c => `<th>${escapeHtml(c)}</th>`).join("");
       html += "</tr></thead><tbody>";
@@ -565,12 +588,13 @@
         html += "<tr>";
         for (const c of cols) {
           const v = (r[c] === null || r[c] === undefined) ? "" : String(r[c]);
-          html += `<td>${escapeHtml(v)}</td>`;
+          html += `<td title="${escapeHtml(v)}">${escapeHtml(v)}</td>`;
         }
         html += "</tr>";
       }
 
       html += "</tbody></table>";
+      html += "</div>";
       return html;
     }
 
